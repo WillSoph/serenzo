@@ -8,6 +8,7 @@ import {
 } from "react";
 import {
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signOut,
   User
 } from "firebase/auth";
@@ -18,12 +19,14 @@ import {
 import { auth } from "@/services/firebase";
 import { db } from "@/services/firebase";
 
+type TipoUsuario = "admin" | "rh" | "colaborador" | null;
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  tipo: string | null;
+  tipo: TipoUsuario;
   logout: () => void;
-  
+  login: (email: string, senha: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,11 +34,12 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   tipo: null,
   logout: () => {},
+  login: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [tipo, setTipo] = useState<string | null>(null);
+  const [tipo, setTipo] = useState<TipoUsuario>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const snap = await getDoc(userRef);
         if (snap.exists()) {
           const data = snap.data();
-          setTipo(data.tipo); // Ex: "colaborador" ou "admin"
+          setTipo(data.tipo as TipoUsuario); // garante que seja um dos valores esperados
         }
       } else {
         setTipo(null);
@@ -65,8 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setTipo(null);
   };
 
+  const login = async (email: string, senha: string) => {
+    await signInWithEmailAndPassword(auth, email, senha);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, tipo, logout }}>
+    <AuthContext.Provider value={{ user, loading, tipo, logout, login }}>
       {children}
     </AuthContext.Provider>
   );

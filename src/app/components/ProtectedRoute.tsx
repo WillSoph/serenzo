@@ -1,9 +1,8 @@
-// components/ProtectedRoute.tsx
 "use client";
 
 import { useAuth } from "@/context/useAuth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,18 +12,23 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, tipo, loading } = useAuth();
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        router.push("/"); // Redireciona para landing page se não logado
+        router.replace("/"); // Redireciona para landing page se não logado
       } else if (!tipo || !allowedRoles.includes(tipo)) {
-        router.push("/"); // Redireciona se tipo não for permitido
+        router.replace("/"); // Redireciona se tipo não for permitido
+      } else {
+        setAuthorized(true);
       }
     }
   }, [user, tipo, loading, router, allowedRoles]);
 
-  if (loading || !user || !tipo) return null;
+  if (loading || !authorized) {
+    return <div className="w-full h-screen bg-white" />; // placeholder visível
+  }
 
   return <>{children}</>;
 }
