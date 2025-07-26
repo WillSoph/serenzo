@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { empresa, ramo, telefone, responsavel, email, senha } = await req.json();
-
-  // ⚠️ Mova o import e inicialização do Stripe AQUI dentro
-  const Stripe = (await import("stripe")).default;
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: "2025-06-30.basil",
-  });
+  const body = await req.json();
+  const { empresa, ramo, telefone, responsavel, email, senha } = body;
 
   try {
+    // ⚠️ Importa Stripe dinamicamente
+    const Stripe = (await import("stripe")).default;
+
+    // ⚠️ Verifica se a env está presente antes de continuar
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeKey) {
+      console.error("STRIPE_SECRET_KEY não definida.");
+      return NextResponse.json({ error: "Configuração inválida do Stripe." }, { status: 500 });
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: "2025-06-30.basil", // defina a versão
+    });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       mode: "subscription",

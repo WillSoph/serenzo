@@ -1,12 +1,7 @@
 export const dynamic = "force-dynamic";
-// src/app/api/process-checkout/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { dbAdmin, authAdmin } from "@/services/firebaseAdmin";
 import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-06-30.basil",
-});
 
 export async function POST(req: NextRequest) {
   const { session_id } = await req.json();
@@ -16,6 +11,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // ✅ Importação e verificação segura do Stripe
+    const Stripe = (await import("stripe")).default;
+    const stripeKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!stripeKey) {
+      console.error("STRIPE_SECRET_KEY não definida.");
+      return NextResponse.json({ error: "Stripe não configurado corretamente" }, { status: 500 });
+    }
+
+    const stripe = new Stripe(stripeKey, {
+      apiVersion: "2025-06-30.basil",
+    });
+
     const session = await stripe.checkout.sessions.retrieve(session_id, {
       expand: ["customer"],
     });
@@ -27,7 +35,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Metadados incompletos." }, { status: 400 });
     }
 
-    // Cria usuário admin primeiro
     const userRecord = await authAdmin.createUser({
       email: metadata.email,
       password: metadata.senha,
@@ -36,7 +43,6 @@ export async function POST(req: NextRequest) {
 
     const empresaId = session.id;
 
-    // Cria documento da empresa
     await dbAdmin.collection("empresas").doc(empresaId).set({
       nomeEmpresa: metadata.nomeEmpresa,
       telefone: metadata.telefone,
@@ -47,7 +53,6 @@ export async function POST(req: NextRequest) {
       plano: "mensal-ilimitado",
     });
 
-    // Cria documento do usuário
     await dbAdmin.collection("usuarios").doc(userRecord.uid).set({
       nome: metadata.nome,
       email: metadata.email,
