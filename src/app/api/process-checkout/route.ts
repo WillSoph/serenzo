@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 // src/app/api/process-checkout/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { dbAdmin, authAdmin } from "@/services/firebaseAdmin";
