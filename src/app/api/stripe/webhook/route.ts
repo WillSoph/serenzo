@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       const user = await authAdmin.createUser({
         email: metadata.email,
         password: metadata.senha,
-        displayName: metadata.nome,
+        displayName: metadata.nome
       });
 
       const empresaId = session.id;
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
         nome: metadata.nome,
         email: metadata.email,
         empresaId,
-        tipo: "admin",
+        tipo: "rh",
         criadoEm: new Date().toISOString(),
       });
 

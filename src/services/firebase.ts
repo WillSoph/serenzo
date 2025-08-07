@@ -6,13 +6,14 @@ import { getFunctions } from "firebase/functions";
 
 // Configurações do Firebase — use variáveis de ambiente do Next.js
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  };
+  apiKey: "AIzaSyCWQOrbAFyL1x1bHELzzyrAlV9Ps6p-ImY",
+  authDomain: "saude-mental-62d23.firebaseapp.com",
+  projectId: "saude-mental-62d23",
+  storageBucket: "saude-mental-62d23.firebasestorage.app",
+  messagingSenderId: "552564407596",
+  appId: "1:552564407596:web:f9ae6b9d2eedaee4cc0089",
+  measurementId: "G-Z2NTHZ5D84"
+};
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 

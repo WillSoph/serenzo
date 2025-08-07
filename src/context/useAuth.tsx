@@ -18,8 +18,9 @@ import {
 } from "firebase/firestore";
 import { auth } from "@/services/firebase";
 import { db } from "@/services/firebase";
+import { useRouter } from "next/navigation";
 
-type TipoUsuario = "admin" | "rh" | "colaborador" | null;
+type TipoUsuario = "admin" | "rh" | "colaborador" | undefined;
 
 interface AuthContextType {
   user: User | null;
@@ -32,41 +33,54 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  tipo: null,
+  tipo: undefined,
   logout: () => {},
   login: async () => {},
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {  
   const [user, setUser] = useState<User | null>(null);
-  const [tipo, setTipo] = useState<TipoUsuario>(null);
+  const [tipo, setTipo] = useState<TipoUsuario>(undefined);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("[useAuth] Firebase user →", firebaseUser);
       setUser(firebaseUser);
-
+  
       if (firebaseUser) {
-        const userRef = doc(db, "usuarios", firebaseUser.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          const data = snap.data();
-          setTipo(data.tipo as TipoUsuario); // garante que seja um dos valores esperados
+        try {
+          const userRef = doc(db, "usuarios", firebaseUser.uid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const data = snap.data();
+            console.log("[useAuth] Dados Firestore →", data);
+            setTipo(data.tipo as TipoUsuario);
+          } else {
+            console.warn("[useAuth] Documento não encontrado no Firestore");
+            setTipo(null);
+          }
+        } catch (err) {
+          console.error("[useAuth] Erro ao buscar dados:", err);
+          setTipo(null);
         }
       } else {
-        setTipo(null);
+        setTipo(undefined);
       }
-
+  
       setLoading(false);
     });
-
+  
     return () => unsubscribe();
   }, []);
+  
 
   const logout = () => {
     signOut(auth);
     setUser(null);
-    setTipo(null);
+    setTipo(undefined);
+    router.push("/");
   };
 
   const login = async (email: string, senha: string) => {

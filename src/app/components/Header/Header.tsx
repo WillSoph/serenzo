@@ -7,7 +7,7 @@ export function Header() {
     <header className="w-full fixed top-0 left-0 bg-white shadow z-50">
         {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="text-xl font-bold text-blue-600">SaúdeMentalPro</div>
+        <div className="text-xl font-bold text-blue-600">SERENZO</div>
         <nav className="hidden md:flex gap-6 text-gray-700 font-medium">
           <a href="#about" className="hover:text-blue-600">Quem somos</a>
           <a href="#benefits" className="hover:text-blue-600">Vantagens</a>

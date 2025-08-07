@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { dbAdmin, authAdmin } from "@/services/firebaseAdmin";
 import Stripe from "stripe";
 
+
 export async function POST(req: NextRequest) {
   const { session_id } = await req.json();
 
@@ -31,6 +32,8 @@ export async function POST(req: NextRequest) {
     const customer = session.customer as Stripe.Customer;
     const metadata = customer.metadata;
 
+    console.log("📦 Metadados recebidos no process-checkout:", metadata);
+
     if (!metadata || !metadata.email || !metadata.senha) {
       return NextResponse.json({ error: "Metadados incompletos." }, { status: 400 });
     }
@@ -38,13 +41,13 @@ export async function POST(req: NextRequest) {
     const userRecord = await authAdmin.createUser({
       email: metadata.email,
       password: metadata.senha,
-      displayName: metadata.nome,
+      displayName: metadata.nome
     });
 
     const empresaId = session.id;
 
     await dbAdmin.collection("empresas").doc(empresaId).set({
-      nomeEmpresa: metadata.nomeEmpresa,
+      nomeEmpresa: metadata.empresa,
       telefone: metadata.telefone,
       ramo: metadata.ramo,
       emailAdmin: metadata.email,
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
       nome: metadata.nome,
       email: metadata.email,
       empresaId,
-      tipo: "admin",
+      tipo: "rh",
       criadoEm: new Date().toISOString(),
     });
 

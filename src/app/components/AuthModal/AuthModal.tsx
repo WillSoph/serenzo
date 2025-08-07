@@ -2,6 +2,33 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/useAuth";
+import { useRouter } from "next/navigation";
+import { Button } from "../ui/Button";
+import { Input } from "../ui/Input";
+import { Select } from "../ui/Select";
+
+const opcoesRamo = [
+  "Recursos Humanos",
+  "Consultoria Empresarial",
+  "Tecnologia da Informação",
+  "Educação e Treinamentos",
+  "Serviços Financeiros",
+  "Contabilidade",
+  "Marketing e Publicidade",
+  "Agências de Recrutamento",
+  "Varejo",
+  "Indústria",
+  "Construtoras e Engenharia",
+  "Saúde e Bem-Estar",
+  "Jurídico e Advocacia",
+  "Logística e Transporte",
+  "Organizações Sem Fins Lucrativos",
+  "Cooperativas",
+  "Eventos e Produções",
+  "Imobiliárias",
+  "Call Centers e Atendimento",
+  "Outros",
+];
 
 export function AuthModal({ onClose }: { onClose: () => void }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -15,7 +42,38 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const [carregando, setCarregando] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
-  const { login } = useAuth();
+  const router = useRouter();
+  const { login, tipo } = useAuth();
+
+  const formPreenchido = isLogin
+    ? email && senha
+    : empresa && ramo && telefone && responsavel && email && senha;
+
+  useEffect(() => {
+    const verificarEmail = async () => {
+      if (!email || isLogin) return;
+
+      try {
+        const res = await fetch("/api/check-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+
+        const data = await res.json();
+
+        if (data.exists) {
+          setErro("Este e-mail já está cadastrado. Faça login.");
+        } else {
+          setErro("");
+        }
+      } catch {
+        setErro("Erro ao verificar e-mail");
+      }
+    };
+
+    verificarEmail();
+  }, [email, isLogin]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -30,7 +88,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const iniciarCheckout = async () => {
     setCarregando(true);
     setErro("");
-  
+
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
@@ -44,15 +102,14 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
           senha,
         }),
       });
-  
+
       const data = await res.json();
-  
+
       if (data?.url) {
-        // ✅ Salva o e-mail para ser acessado na página de sucesso
         localStorage.setItem(
-            "dadosCadastroEmpresa",
-            JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha })
-          );
+          "dadosCadastroEmpresa",
+          JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha })
+        );
         window.location.href = data.url;
       } else {
         throw new Error("Erro ao iniciar o checkout.");
@@ -63,7 +120,6 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
       setCarregando(false);
     }
   };
-  
 
   const handleLogin = async () => {
     setCarregando(true);
@@ -71,6 +127,21 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     try {
       await login(email, senha);
       onClose();
+
+      const checkTipoInterval = setInterval(() => {
+        if (tipo === "admin") {
+          clearInterval(checkTipoInterval);
+          router.push("/admin");
+        } else if (tipo === "rh") {
+          clearInterval(checkTipoInterval);
+          router.push("/rh");
+        } else if (tipo === "colaborador") {
+          clearInterval(checkTipoInterval);
+          router.push("/colaborador");
+        }
+      }, 100);
+
+      setTimeout(() => clearInterval(checkTipoInterval), 5000);
     } catch (err: any) {
       setErro(err.message || "Erro ao fazer login");
     } finally {
@@ -96,82 +167,86 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
         </h2>
 
         {!isLogin && (
-          <>
-            <input
-              type="text"
+          <div className="flex flex-col gap-2">
+            <Input
               placeholder="Nome da Empresa"
-              className="w-full mb-3 px-4 py-2 border rounded"
               value={empresa}
               onChange={(e) => setEmpresa(e.target.value)}
+              fullWidth
             />
-            <input
-              type="text"
-              placeholder="Ramo de Atuação"
-              className="w-full mb-3 px-4 py-2 border rounded"
+
+            <Select
               value={ramo}
               onChange={(e) => setRamo(e.target.value)}
+              options={opcoesRamo.map((r) => ({ label: r, value: r }))}
+              fullWidth
+              label="Ramo de Atuação"
             />
-            <input
-              type="text"
+
+            <Input
               placeholder="Telefone"
-              className="w-full mb-3 px-4 py-2 border rounded"
               value={telefone}
               onChange={(e) => setTelefone(e.target.value)}
+              fullWidth
             />
-            <input
-              type="text"
+
+            <Input
               placeholder="Seu Nome (Admin)"
-              className="w-full mb-3 px-4 py-2 border rounded"
               value={responsavel}
               onChange={(e) => setResponsavel(e.target.value)}
+              fullWidth
             />
-          </>
+          </div>
         )}
-
-        <input
+        <div className="flex flex-col gap-2 mt-2">
+        <Input
           type="email"
           placeholder="E-mail"
-          className="w-full mb-1 px-4 py-2 border rounded"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          fullWidth
         />
+
         {!isLogin && (
           <p className="text-xs text-gray-500 mb-2">
             Este será o e-mail usado para acessar como administrador da empresa.
           </p>
         )}
 
-        <input
+        <Input
           type="password"
           placeholder="Senha"
-          className="w-full mb-3 px-4 py-2 border rounded"
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
+          fullWidth
         />
 
-        {erro && <div className="text-red-600 text-sm mb-2">{erro}</div>}
+        {erro && !isLogin && <div className="text-red-600 text-sm mb-2">{erro}</div>}
 
-        <button
-          disabled={carregando}
-          className="bg-primary text-white w-full py-2 rounded hover:bg-blue-700"
+        <Button
+          loading={carregando}
+          disabled={
+            !!erro ||
+            (isLogin
+              ? !email || !senha
+              : !empresa || !ramo || !telefone || !responsavel || !email || !senha)
+          }
           onClick={isLogin ? handleLogin : iniciarCheckout}
+          fullWidth
         >
-          {carregando
-            ? "Carregando..."
-            : isLogin
-            ? "Entrar"
-            : "Cadastrar e Pagar"}
-        </button>
+          {isLogin ? "Entrar" : "Cadastrar e Pagar"}
+        </Button>
 
         <p className="text-sm text-center mt-4">
           {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-primary underline"
+            className="text-blue-600 underline cursor-pointer hover:text-blue-800 transition-colors"
           >
             {isLogin ? "Criar conta" : "Entrar"}
           </button>
         </p>
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ type UserData = {
   nome: string;
   email: string;
   empresaId: string;
-  tipo: "admin" | "colaborador";
+  tipo: "admin" | "rg" | "colaborador";
   criadoEm?: string;
 };
 

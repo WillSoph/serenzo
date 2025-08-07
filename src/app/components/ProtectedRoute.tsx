@@ -15,19 +15,38 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        router.replace("/"); // Redireciona para landing page se não logado
-      } else if (!tipo || !allowedRoles.includes(tipo)) {
-        router.replace("/"); // Redireciona se tipo não for permitido
-      } else {
-        setAuthorized(true);
-      }
+    console.log("[ProtectedRoute] Estado atual →", {
+      loading,
+      user,
+      tipo,
+    });
+  
+    if (loading) return; // Aguarde o loading terminar
+  
+    if (!user) {
+      console.log("[ProtectedRoute] Redirecionando: usuário não autenticado");
+      router.replace("/");
+      return;
     }
+  
+    if (tipo === undefined) {
+      console.log("[ProtectedRoute] Tipo ainda não carregado...");
+      return;
+    }
+  
+    if (!allowedRoles.includes(tipo)) {
+      console.log("[ProtectedRoute] Redirecionando: tipo não permitido", tipo);
+      router.replace("/");
+      return;
+    }
+  
+    console.log("[ProtectedRoute] Acesso permitido para tipo:", tipo);
+    setAuthorized(true);
   }, [user, tipo, loading, router, allowedRoles]);
+  
 
-  if (loading || !authorized) {
-    return <div className="w-full h-screen bg-white" />; // placeholder visível
+  if (loading || tipo === undefined || !authorized) {
+    return <div className="w-full h-screen bg-white" />; // Placeholder visível
   }
 
   return <>{children}</>;
