@@ -59,11 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTipo(data.tipo as TipoUsuario);
           } else {
             console.warn("[useAuth] Documento não encontrado no Firestore");
-            setTipo(null);
+            setTipo(undefined);
           }
         } catch (err) {
           console.error("[useAuth] Erro ao buscar dados:", err);
-          setTipo(null);
+          setTipo(undefined);
         }
       } else {
         setTipo(undefined);
