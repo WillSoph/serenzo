@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { useAuth } from "@/context/useAuth";
+import { Suspense } from 'react'
 
 export default function SuccessPage() {
   const [mensagem, setMensagem] = useState("Finalizando cadastro...");
@@ -85,6 +86,7 @@ export default function SuccessPage() {
   };
 
   return (
+    <Suspense>
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
       <div className="bg-white shadow-md rounded p-6 max-w-md text-center w-full">
         <h1 className="text-2xl font-bold mb-4">🎉 Obrigado!</h1>
@@ -114,5 +116,6 @@ export default function SuccessPage() {
         )}
       </div>
     </div>
+    </Suspense>
   );
 }
