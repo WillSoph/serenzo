@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { useAuth } from "@/context/useAuth";
-import { Suspense } from 'react'
 
 export default function SuccessPage() {
   const [mensagem, setMensagem] = useState("Finalizando cadastro...");
@@ -17,27 +16,27 @@ export default function SuccessPage() {
   const [carregando, setCarregando] = useState(false);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("session_id");
+  setSessionId(id);
+}, []);
+
   const { login } = useAuth();
 
   useEffect(() => {
-    const sessionId = searchParams?.get("session_id");
+    if (!sessionId) return;
+  
     const dadosLocalStorage = localStorage.getItem("dadosCadastroEmpresa");
-
-    if (!sessionId || !dadosLocalStorage) {
+    if (!dadosLocalStorage) {
       setMensagem("Sessão do Stripe ou dados do cadastro não encontrados.");
       return;
     }
-
-    const {
-      empresa,
-      ramo,
-      telefone,
-      responsavel,
-      email,
-      senha,
-    } = JSON.parse(dadosLocalStorage);
-
+  
+    const { empresa, ramo, telefone, responsavel, email, senha } = JSON.parse(dadosLocalStorage);
+  
     const finalizarCadastro = async () => {
       try {
         const res = await fetch("/api/finalizar-checkout", {
@@ -53,12 +52,12 @@ export default function SuccessPage() {
             sessionId,
           }),
         });
-
+  
         if (!res.ok) {
           const { error } = await res.json();
           throw new Error(error || "Erro ao finalizar cadastro.");
         }
-
+  
         setMensagem("Cadastro finalizado! Faça login abaixo para continuar.");
         setEmail(email);
         setSenha(senha);
@@ -68,9 +67,10 @@ export default function SuccessPage() {
         setErro(err.message || "Erro inesperado.");
       }
     };
-
+  
     finalizarCadastro();
-  }, [searchParams]);
+  }, [sessionId]);
+  
 
   const handleLogin = async () => {
     setCarregando(true);
@@ -86,7 +86,6 @@ export default function SuccessPage() {
   };
 
   return (
-    <Suspense>
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">
       <div className="bg-white shadow-md rounded p-6 max-w-md text-center w-full">
         <h1 className="text-2xl font-bold mb-4">🎉 Obrigado!</h1>
@@ -116,6 +115,5 @@ export default function SuccessPage() {
         )}
       </div>
     </div>
-    </Suspense>
   );
 }
