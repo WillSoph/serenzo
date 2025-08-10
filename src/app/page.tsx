@@ -12,7 +12,7 @@ export default function HomePage() {
   return (
     <div className="scroll-smooth">
       <Header />
-      <main className="pt-20">
+      <main>
         <Hero />
         <About />
         <Benefits />

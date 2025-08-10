@@ -1,23 +1,75 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthModal } from '../AuthModal/AuthModal';
+import { Menu, X } from 'lucide-react';
 
 export function Header() {
-    const [showAuth, setShowAuth] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <header className="w-full fixed top-0 left-0 bg-white shadow z-50">
-        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
-      <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="text-xl font-bold text-blue-600">SERENZO</div>
-        <nav className="hidden md:flex gap-6 text-gray-700 font-medium">
-          <a href="#about" className="hover:text-blue-600">Quem somos</a>
-          <a href="#benefits" className="hover:text-blue-600">Vantagens</a>
-          <a href="#testimonials" className="hover:text-blue-600">Depoimentos</a>
-          <a href="#footer" className="hover:text-blue-600">Contato</a>
+    <header
+      className={`w-full fixed top-0 left-0 z-50 transition
+        ${scrolled ? 'bg-white/90 backdrop-blur shadow-sm' : 'bg-white'}`}
+      aria-label="Cabeçalho da Serenzo"
+    >
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <a href="#hero" className="text-xl font-extrabold tracking-tight text-emerald-700">
+          SERENZO
+        </a>
+
+        {/* Desktop nav */}
+        <nav className="hidden md:flex items-center gap-6 text-gray-700 font-medium">
+          <a href="#about" className="hover:text-emerald-700">Quem somos</a>
+          <a href="#benefits" className="hover:text-emerald-700">Vantagens</a>
+          <a href="#testimonials" className="hover:text-emerald-700">Depoimentos</a>
+          <a href="#footer" className="hover:text-emerald-700">Contato</a>
         </nav>
-        <div>
-        <button onClick={() => setShowAuth(true)} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Entrar</button>
+
+        <div className="hidden md:block">
+          <button
+            onClick={() => setShowAuth(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+          >
+            Entrar
+          </button>
         </div>
+
+        {/* Mobile button */}
+        <button
+          aria-label="Abrir menu"
+          className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X /> : <Menu />}
+        </button>
       </div>
+
+      {/* Mobile nav */}
+      {open && (
+        <div className="md:hidden border-t bg-white">
+          <nav className="max-w-6xl mx-auto px-4 py-3 grid gap-3 text-gray-800">
+            <a onClick={() => setOpen(false)} href="#about" className="py-1">Quem somos</a>
+            <a onClick={() => setOpen(false)} href="#benefits" className="py-1">Vantagens</a>
+            <a onClick={() => setOpen(false)} href="#testimonials" className="py-1">Depoimentos</a>
+            <a onClick={() => setOpen(false)} href="#footer" className="py-1">Contato</a>
+            <button
+              onClick={() => { setOpen(false); setShowAuth(true); }}
+              className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-left"
+            >
+              Entrar
+            </button>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

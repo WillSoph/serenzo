@@ -1,38 +1,43 @@
+import React from 'react';
+
 const testimonials = [
   {
-    name: "Carla Souza",
-    company: "RH, TechNova",
+    name: 'Carla Souza',
+    company: 'RH, TechNova',
     message:
-      "Desde que adotamos a plataforma, conseguimos identificar sinais precoces de burnout e promover ações mais humanas no ambiente de trabalho."
+      'Desde que adotamos a plataforma, conseguimos identificar sinais precoces de burnout e promover ações mais humanas.',
   },
   {
-    name: "Marcos Lima",
-    company: "Diretor, EcoSolutions",
+    name: 'Marcos Lima',
+    company: 'Diretor, EcoSolutions',
     message:
-      "A inteligência artificial surpreendeu pela precisão na triagem das mensagens. O dashboard é simples e eficaz."
+      'A análise por IA surpreendeu pela precisão na triagem das mensagens. O dashboard é simples e eficaz.',
   },
   {
-    name: "Luciana Dias",
-    company: "Psicóloga Organizacional, BrightTeam",
+    name: 'Luciana Dias',
+    company: 'Psicóloga Organizacional, BrightTeam',
     message:
-      "Pela primeira vez conseguimos consolidar sugestões, desabafos e críticas de forma estruturada. Recomendo muito."
+      'Conseguimos consolidar sugestões, desabafos e críticas de forma estruturada. Recomendo muito.',
   },
 ];
 
 export function Testimonials() {
   return (
-    <section className="bg-white py-20" id="testimonials">
+    <section id="testimonials" className="bg-white py-20">
       <div className="max-w-6xl mx-auto px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-12">Depoimentos</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((item, index) => (
+        <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Depoimentos</h2>
+
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {testimonials.map((item) => (
             <div
-              key={index}
-              className="bg-gray-50 border border-gray-200 p-6 rounded-lg shadow-sm"
+              key={item.name}
+              className="h-full bg-gray-50 border border-gray-100 p-6 rounded-2xl text-left shadow-sm"
             >
-              <p className="text-gray-700 italic mb-4">“{item.message}”</p>
-              <div className="text-sm font-semibold text-blue-600">{item.name}</div>
-              <div className="text-xs text-gray-500">{item.company}</div>
+              <p className="text-gray-700 italic leading-relaxed">“{item.message}”</p>
+              <div className="mt-4">
+                <div className="text-sm font-semibold text-emerald-700">{item.name}</div>
+                <div className="text-xs text-gray-500">{item.company}</div>
+              </div>
             </div>
           ))}
         </div>
