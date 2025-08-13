@@ -6,7 +6,7 @@ import { RhHeader } from '../rh/RhHeader';
 
 interface LayoutDashboardProps {
   children: ReactNode;
-  telaAtiva: string;
+  telaAtiva: any;
   setTelaAtiva: (tela: any) => void;
   mensagensNaoVistas: { inbox: number; enviadas: number; ajuda: number };
 }
