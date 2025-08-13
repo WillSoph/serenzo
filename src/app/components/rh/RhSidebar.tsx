@@ -7,10 +7,15 @@ import { useUserData } from '@/hooks/useUserData';
 import { useUnreadCountRH } from '@/hooks/useUnreadCountRH';
 
 interface RhSidebarProps {
-  telaAtiva: 'home' | 'inbox' | 'adicionar';
+  telaAtiva: 'home' | 'inbox' | 'adicionar' | 'enviadas';
   setTelaAtiva: (tela: RhSidebarProps['telaAtiva']) => void;
   menuAberto: boolean;
   setMenuAberto: (open: boolean) => void;
+  mensagensNaoVistas?: {
+    inbox?: number;
+    enviadas?: number;
+    ajuda?: number;
+  };
 }
 
 export const RhSidebar = ({
