@@ -1,48 +1,100 @@
 // app/api/adicionar-usuario/route.ts
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { authAdmin, dbAdmin } from "@/services/firebaseAdmin";
 
+/**
+ * Espera receber no body (JSON):
+ * { nome: string, email: string, senha: string, empresaId: string, tipo?: "colaborador" | "rh" }
+ *
+ * Fluxo:
+ * - valida campos
+ * - verifica se já existe usuário com esse email
+ * - cria usuário no Firebase Auth
+ * - grava documento em "usuarios/{uid}"
+ * - grava documento em "empresas/{empresaId}/usuarios/{uid}"
+ */
 export async function POST(req: NextRequest) {
-    try {
-      const { texto } = await req.json();
-  
-      if (!texto) {
-        return NextResponse.json({ error: "Texto é obrigatório." }, { status: 400 });
-      }
-  
-      const openAiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content:
-                "Você é um assistente de RH. Analise a mensagem enviada por um colaborador e classifique como 'sugestao', 'critica', 'ajuda' ou 'elogio'. Depois, responda com empatia e profissionalismo, demonstrando que o RH recebeu e está avaliando.",
-            },
-            { role: "user", content: texto },
-          ],
-          temperature: 0.7,
-        }),
-      });
-  
-      const data = await openAiRes.json();
-      console.log("🧠 Resposta do OpenAI:", JSON.stringify(data, null, 2));
-  
-      const resposta = data.choices?.[0]?.message?.content || "Sem resposta.";
-      let tipoDetectado = "sugestao";
-  
-      if (resposta.toLowerCase().includes("crítica")) tipoDetectado = "critica";
-      else if (resposta.toLowerCase().includes("ajuda")) tipoDetectado = "ajuda";
-      else if (resposta.toLowerCase().includes("elogio")) tipoDetectado = "elogio";
-  
-      return NextResponse.json({ tipoDetectado, resposta });
-    } catch (error) {
-      console.error("❌ Erro ao analisar texto:", error);
-      return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+  try {
+    const { nome, email, senha, empresaId, tipo } = await req.json();
+
+    // Validação simples
+    if (!nome || !email || !senha || !empresaId) {
+      return NextResponse.json(
+        { error: "Campos obrigatórios: nome, email, senha, empresaId." },
+        { status: 400 }
+      );
     }
+
+    const perfil: "colaborador" | "rh" = (tipo === "rh" ? "rh" : "colaborador");
+
+    // Verifica se já existe usuário com esse email
+    let userRecord;
+    try {
+      userRecord = await authAdmin.getUserByEmail(email);
+    } catch {
+      // se cair aqui, é porque não encontrou (ok)
+    }
+
+    if (userRecord?.uid) {
+      return NextResponse.json(
+        { error: "E-mail já está cadastrado.", code: "email-already-exists" },
+        { status: 409 }
+      );
+    }
+
+    // Cria usuário no Auth
+    const novoUser = await authAdmin.createUser({
+      displayName: nome,
+      email,
+      password: senha,
+    });
+
+    const uid = novoUser.uid;
+    const agoraISO = new Date().toISOString();
+
+    // Documento principal do usuário
+    const usuarioDoc = {
+      nome,
+      email,
+      tipo: perfil,        // "colaborador" (default) ou "rh"
+      empresaId,
+      criadoEm: agoraISO,
+      uid,
+    };
+
+    // Grava em "usuarios/{uid}"
+    await dbAdmin.collection("usuarios").doc(uid).set(usuarioDoc);
+
+    // Grava também em "empresas/{empresaId}/usuarios/{uid}"
+    await dbAdmin
+      .collection("empresas")
+      .doc(empresaId)
+      .collection("usuarios")
+      .doc(uid)
+      .set({
+        uid,
+        nome,
+        email,
+        tipo: perfil,
+        criadoEm: agoraISO,
+      });
+
+    return NextResponse.json({ ok: true, uid });
+  } catch (err: any) {
+    // Tratamento de erros comuns do Admin SDK
+    const msg = err?.message || "Erro interno.";
+    const code = err?.errorInfo?.code || err?.code;
+
+    if (code === "auth/email-already-exists") {
+      return NextResponse.json(
+        { error: "E-mail já está cadastrado.", code },
+        { status: 409 }
+      );
+    }
+
+    console.error("❌ Erro em /api/adicionar-usuario:", err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
+}

@@ -51,7 +51,10 @@ export async function POST(req: NextRequest) {
       displayName: responsavel,
     });
 
-    await dbAdmin.collection("empresas").doc(userRecord.uid).set({
+    // ⭐ usamos o próprio uid como empresaId (mantém seu fluxo atual)
+    const empresaId = userRecord.uid;
+
+    await dbAdmin.collection("empresas").doc(empresaId).set({
       nome: empresa,
       ramo,
       telefone,
@@ -59,6 +62,8 @@ export async function POST(req: NextRequest) {
       email,
       tipo: "rh",
       uid: userRecord.uid,
+      // ⭐ opcional, mas útil para consultas
+      empresaId,
       criadoEm: new Date().toISOString(),
     });
 
@@ -67,10 +72,13 @@ export async function POST(req: NextRequest) {
       nome: responsavel,
       tipo: "rh",
       uid: userRecord.uid,
+      // ⭐ agora o usuário RH já nasce com empresaId
+      empresaId,
       criadoEm: new Date().toISOString(),
     });
 
-    return NextResponse.json({ message: "Cadastro finalizado com sucesso." });
+    // ⭐ devolve empresaId para quem chamar, se quiser usar
+    return NextResponse.json({ message: "Cadastro finalizado com sucesso.", empresaId });
   } catch (err: any) {
     console.error("Erro ao finalizar checkout:", err);
     return NextResponse.json({ error: err.message || "Erro interno" }, { status: 500 });

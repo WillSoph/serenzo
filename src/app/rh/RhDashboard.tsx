@@ -6,7 +6,7 @@ import { useAuth } from '@/context/useAuth';
 import { HomeDashboard } from '../components/Dashboard/HomeDashboard';
 import { CaixaDeEntrada } from '../components/Dashboard/CaixaDeEntrada';
 import { MensagensEnviadas } from '../components/Dashboard/MensagensEnviadas';
-import AdicionarUsuario from '../components/rh/AdicionarUsuario';
+import GestaoUsuarios from '../components/rh/GestaoUsuarios';
 import { RhSidebar } from '../components/rh/RhSidebar';
 import { RhHeader } from '../components/rh/RhHeader';
 
@@ -36,7 +36,7 @@ export default function RhDashboard() {
           {telaAtiva === 'home' && <HomeDashboard />}
           {telaAtiva === 'inbox' && <CaixaDeEntrada />}
           {telaAtiva === 'enviadas' && <MensagensEnviadas />}
-          {telaAtiva === 'adicionar' && <AdicionarUsuario />}
+          {telaAtiva === 'adicionar' && <GestaoUsuarios />}
         </div>
       </main>
     </div>

@@ -27,7 +27,7 @@ interface AuthContextType {
   loading: boolean;
   tipo: TipoUsuario;
   logout: () => void;
-  login: (email: string, senha: string) => Promise<void>;
+  login: (email: string, senha: string) => Promise<TipoUsuario>; // <— retorna role
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -35,7 +35,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   tipo: undefined,
   logout: () => {},
-  login: async () => {},
+  // precisa retornar Promise<TipoUsuario>
+  login: () => Promise.resolve(undefined as TipoUsuario),
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {  
@@ -83,9 +84,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/");
   };
 
-  const login = async (email: string, senha: string) => {
-    await signInWithEmailAndPassword(auth, email, senha);
+  const login = async (email: string, senha: string): Promise<TipoUsuario> => {
+    // autentica
+    const cred = await signInWithEmailAndPassword(auth, email, senha);
+  
+    // lê a role imediatamente após o login
+    const userRef = doc(db, "usuarios", cred.user.uid);
+    const snap = await getDoc(userRef);
+  
+    const role = (snap.exists() ? (snap.data().tipo as TipoUsuario) : undefined);
+  
+    // atualiza o contexto imediatamente (sem esperar o onAuthStateChanged)
+    setUser(cred.user);
+    setTipo(role);
+  
+    return role;
   };
+  
 
   return (
     <AuthContext.Provider value={{ user, loading, tipo, logout, login }}>

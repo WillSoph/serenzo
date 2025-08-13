@@ -1,3 +1,4 @@
+// components/Auth/AuthModal.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -6,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "@/services/firebase";
 
 const opcoesRamo = [
   "Recursos Humanos",
@@ -41,45 +44,54 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
+  // estado do "Esqueci a senha"
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [resetErr, setResetErr] = useState<string | null>(null);
+
   const modalRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-  const { login, tipo } = useAuth();
+  const { login } = useAuth();
 
   const formPreenchido = isLogin
     ? email && senha
     : empresa && ramo && telefone && responsavel && email && senha;
 
+  // trava o scroll do body enquanto o modal estiver aberto
+  useEffect(() => {
+    const { style } = document.body;
+    const prev = style.overflow;
+    style.overflow = "hidden";
+    return () => {
+      style.overflow = prev;
+    };
+  }, []);
+
+  // checagem de e-mail no cadastro
   useEffect(() => {
     const verificarEmail = async () => {
       if (!email || isLogin) return;
-
       try {
         const res = await fetch("/api/check-email", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),
         });
-
         const data = await res.json();
-
-        if (data.exists) {
-          setErro("Este e-mail já está cadastrado. Faça login.");
-        } else {
-          setErro("");
-        }
+        setErro(data.exists ? "Este e-mail já está cadastrado. Faça login." : "");
       } catch {
         setErro("Erro ao verificar e-mail");
       }
     };
-
     verificarEmail();
   }, [email, isLogin]);
 
+  // fechar ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        onClose();
-      }
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) onClose();
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -88,32 +100,20 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const iniciarCheckout = async () => {
     setCarregando(true);
     setErro("");
-
     try {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          empresa,
-          ramo,
-          telefone,
-          responsavel,
-          email,
-          senha,
-        }),
+        body: JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha }),
       });
-
       const data = await res.json();
-
       if (data?.url) {
         localStorage.setItem(
           "dadosCadastroEmpresa",
           JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha })
         );
         window.location.href = data.url;
-      } else {
-        throw new Error("Erro ao iniciar o checkout.");
-      }
+      } else throw new Error("Erro ao iniciar o checkout.");
     } catch (err: any) {
       setErro(err.message || "Erro inesperado");
     } finally {
@@ -125,23 +125,9 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     setCarregando(true);
     setErro("");
     try {
-      await login(email, senha);
-      onClose();
-
-      const checkTipoInterval = setInterval(() => {
-        if (tipo === "admin") {
-          clearInterval(checkTipoInterval);
-          router.push("/admin");
-        } else if (tipo === "rh") {
-          clearInterval(checkTipoInterval);
-          router.push("/rh");
-        } else if (tipo === "colaborador") {
-          clearInterval(checkTipoInterval);
-          router.push("/colaborador");
-        }
-      }, 100);
-
-      setTimeout(() => clearInterval(checkTipoInterval), 5000);
+      const role = await login(email, senha); // "admin" | "rh" | "colaborador" | undefined
+      const to = role === "admin" ? "/admin" : role === "rh" ? "/rh" : "/colaborador";
+      router.push(to);
     } catch (err: any) {
       setErro(err.message || "Erro ao fazer login");
     } finally {
@@ -149,105 +135,171 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const openReset = () => {
+    setResetEmail(email || "");
+    setResetMsg(null);
+    setResetErr(null);
+    setResetOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    setResetLoading(true);
+    setResetMsg(null);
+    setResetErr(null);
+    try {
+      if (!resetEmail) throw new Error("Informe seu e-mail para recuperar a senha.");
+      await sendPasswordResetEmail(auth, resetEmail.trim());
+      setResetMsg(
+        "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha nos próximos minutos."
+      );
+    } catch (e: any) {
+      // mensagens amigáveis
+      const code = e?.code || "";
+      const msg =
+        code === "auth/invalid-email"
+          ? "E-mail inválido."
+          : code === "auth/user-not-found"
+          ? "Usuário não encontrado para este e-mail."
+          : "Não foi possível enviar o e-mail de redefinição. Tente novamente.";
+      setResetErr(msg);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div
-        ref={modalRef}
-        className="relative bg-white rounded-lg p-8 w-full max-w-md shadow-lg"
-      >
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-xl font-bold"
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-[2px]" aria-hidden="true" />
+
+      {/* Painel */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          ref={modalRef}
+          role="dialog"
+          aria-modal="true"
+          className="
+            relative w-full max-w-md rounded-2xl bg-white text-slate-900
+            shadow-xl ring-1 ring-black/5
+            opacity-100
+            transition-transform
+          "
         >
-          ✕
-        </button>
-
-        <h2 className="text-2xl font-bold mb-4 text-center">
-          {isLogin ? "Entrar" : "Criar Conta da Empresa"}
-        </h2>
-
-        {!isLogin && (
-          <div className="flex flex-col gap-2">
-            <Input
-              placeholder="Nome da Empresa"
-              value={empresa}
-              onChange={(e) => setEmpresa(e.target.value)}
-              fullWidth
-            />
-
-            <Select
-              value={ramo}
-              onChange={(e) => setRamo(e.target.value)}
-              options={opcoesRamo.map((r) => ({ label: r, value: r }))}
-              fullWidth
-              label="Ramo de Atuação"
-            />
-
-            <Input
-              placeholder="Telefone"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-              fullWidth
-            />
-
-            <Input
-              placeholder="Seu Nome (Admin)"
-              value={responsavel}
-              onChange={(e) => setResponsavel(e.target.value)}
-              fullWidth
-            />
-          </div>
-        )}
-        <div className="flex flex-col gap-2 mt-2">
-        <Input
-          type="email"
-          placeholder="E-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          fullWidth
-        />
-
-        {!isLogin && (
-          <p className="text-xs text-gray-500 mb-2">
-            Este será o e-mail usado para acessar como administrador da empresa.
-          </p>
-        )}
-
-        <Input
-          type="password"
-          placeholder="Senha"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          fullWidth
-        />
-
-        {erro && !isLogin && <div className="text-red-600 text-sm mb-2">{erro}</div>}
-
-        <Button
-          loading={carregando}
-          disabled={
-            !!erro ||
-            (isLogin
-              ? !email || !senha
-              : !empresa || !ramo || !telefone || !responsavel || !email || !senha)
-          }
-          onClick={isLogin ? handleLogin : iniciarCheckout}
-          fullWidth
-        >
-          {isLogin ? "Entrar" : "Cadastrar e Pagar"}
-        </Button>
-
-        <p className="text-sm text-center mt-4">
-          {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
           <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-blue-600 underline cursor-pointer hover:text-blue-800 transition-colors"
+            onClick={onClose}
+            aria-label="Fechar"
+            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-xl font-bold"
           >
-            {isLogin ? "Criar conta" : "Entrar"}
+            ✕
           </button>
-        </p>
+
+          <div className="p-6 sm:p-8">
+            <h2 className="text-2xl font-bold mb-4 text-center">
+              {isLogin ? "Entrar" : "Criar Conta da Empresa"}
+            </h2>
+
+            {!isLogin && (
+              <div className="flex flex-col gap-2">
+                <Input placeholder="Nome da Empresa" value={empresa} onChange={(e) => setEmpresa(e.target.value)} fullWidth />
+                <Select
+                  value={ramo}
+                  onChange={(e) => setRamo(e.target.value)}
+                  options={opcoesRamo.map((r) => ({ label: r, value: r }))}
+                  fullWidth
+                  label="Ramo de Atuação"
+                />
+                <Input placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} fullWidth />
+                <Input placeholder="Seu Nome (Admin)" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} fullWidth />
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 mt-2">
+              <Input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
+
+              {!isLogin && (
+                <p className="text-xs text-slate-500 mb-2">
+                  Este será o e-mail usado para acessar como administrador da empresa.
+                </p>
+              )}
+
+              <Input type="password" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} fullWidth />
+
+              {/* Link Esqueci a senha (apenas no login) */}
+              {isLogin && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={openReset}
+                    className="text-sm text-emerald-700 hover:text-emerald-800 underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
+              )}
+
+              {erro && !isLogin && <div className="text-red-600 text-sm mb-2">{erro}</div>}
+
+              <Button
+                loading={carregando}
+                disabled={
+                  !!erro ||
+                  (isLogin ? !email || !senha : !empresa || !ramo || !telefone || !responsavel || !email || !senha)
+                }
+                onClick={isLogin ? handleLogin : iniciarCheckout}
+                fullWidth
+              >
+                {isLogin ? "Entrar" : "Cadastrar e Pagar"}
+              </Button>
+
+              <p className="text-sm text-center mt-4">
+                {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
+                <button
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-emerald-700 underline hover:text-emerald-800 transition-colors"
+                >
+                  {isLogin ? "Criar conta" : "Entrar"}
+                </button>
+              </p>
+            </div>
+          </div>
+
+          {/* Mini-modal de redefinição de senha */}
+          {resetOpen && (
+            <>
+              <div className="absolute inset-0 rounded-2xl bg-white/70 backdrop-blur-sm" />
+              <div className="absolute inset-0 flex items-center justify-center p-4">
+                <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-lg ring-1 ring-black/5">
+                  <h3 className="text-lg font-semibold text-slate-900">Redefinir senha</h3>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Informe o e-mail da sua conta para enviarmos o link de redefinição.
+                  </p>
+
+                  <div className="mt-3">
+                    <Input
+                      type="email"
+                      placeholder="Seu e-mail"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      fullWidth
+                    />
+                    {resetErr && <div className="text-red-600 text-sm mt-2">{resetErr}</div>}
+                    {resetMsg && <div className="text-emerald-700 text-sm mt-2">{resetMsg}</div>}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-end gap-2">
+                    <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetLoading}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleResetPassword} loading={resetLoading} disabled={!resetEmail}>
+                      Enviar link
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
