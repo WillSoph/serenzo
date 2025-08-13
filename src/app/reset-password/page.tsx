@@ -1,7 +1,7 @@
 // app/reset-password/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "@/services/firebase";
 import {
@@ -11,7 +11,27 @@ import {
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 
+// evita tentativa de prerender estatico em alguns hosts
+export const dynamic = "force-dynamic";
+
 export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 sm:p-8 shadow-xl ring-1 ring-black/5">
+            <div className="h-6 w-40 bg-slate-200 rounded animate-pulse mb-4" />
+            <div className="h-20 w-full bg-slate-200 rounded animate-pulse" />
+          </div>
+        </main>
+      }
+    >
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordContent() {
   const router = useRouter();
   const search = useSearchParams();
 
@@ -29,7 +49,6 @@ export default function ResetPasswordPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Verifica o código recebido no link do e-mail
   useEffect(() => {
     let mounted = true;
 
@@ -66,7 +85,7 @@ export default function ResetPasswordPage() {
   const passOk =
     password.length >= 8 &&
     /[A-Za-z]/.test(password) &&
-    /\d/.test(password); // simples: 8+, letras e número
+    /\d/.test(password);
 
   const canSubmit = passOk && password === confirm && !submitting && !validating && !!email;
 
@@ -173,17 +192,10 @@ export default function ResetPasswordPage() {
             </button>
           </div>
 
-          {/* Dicas/validação simples */}
           <ul className="text-xs text-slate-600 mt-1 space-y-1">
-            <li className={password.length >= 8 ? "text-emerald-700" : ""}>
-              • Mínimo de 8 caracteres
-            </li>
-            <li className={/[A-Za-z]/.test(password) ? "text-emerald-700" : ""}>
-              • Deve conter letras
-            </li>
-            <li className={/\d/.test(password) ? "text-emerald-700" : ""}>
-              • Deve conter números
-            </li>
+            <li className={password.length >= 8 ? "text-emerald-700" : ""}>• Mínimo de 8 caracteres</li>
+            <li className={/[A-Za-z]/.test(password) ? "text-emerald-700" : ""}>• Deve conter letras</li>
+            <li className={/\d/.test(password) ? "text-emerald-700" : ""}>• Deve conter números</li>
             {password && confirm && (
               <li className={password === confirm ? "text-emerald-700" : "text-rose-700"}>
                 • As senhas devem coincidir
