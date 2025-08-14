@@ -24,7 +24,6 @@ export default function GestaoUsuarios() {
   const { user } = useAuth();
   const { data: userData, loading: userLoading } = useUserData(user);
 
-  // listagem
   const [usuarios, setUsuarios] = useState<UsuarioLite[]>([]);
   const [loading, setLoading] = useState(false);
   const [busca, setBusca] = useState("");
@@ -92,13 +91,11 @@ export default function GestaoUsuarios() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Erro ao adicionar usuário.");
-      // reset
       setNome("");
       setEmail("");
       setSenha("");
       setTipoNovo("colaborador");
       setModalAdd(false);
-      // reload
       carregar();
     } catch (e: any) {
       setErroAdd(e.message || "Erro inesperado.");
@@ -128,17 +125,17 @@ export default function GestaoUsuarios() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center">
             <Users className="h-5 w-5 text-emerald-700" />
           </div>
-        <div>
-          <h2 className="text-2xl font-bold text-emerald-900">Usuários da Empresa</h2>
-          <p className="text-sm text-slate-600">Gerencie colaboradores e contas de RH</p>
-        </div>
+          <div>
+            <h2 className="text-2xl font-bold text-emerald-900">Usuários da Empresa</h2>
+            <p className="text-sm text-slate-600">Gerencie colaboradores e contas de RH</p>
+          </div>
         </div>
 
         <Button onClick={() => setModalAdd(true)}>
@@ -161,77 +158,76 @@ export default function GestaoUsuarios() {
         <div className="text-sm text-slate-500">{filtrados.length} resultado(s)</div>
       </div>
 
-      {/* Lista */}
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="grid grid-cols-12 px-4 py-3 text-xs font-semibold text-slate-500 border-b">
-          <div className="col-span-4">Nome</div>
-          <div className="col-span-4">E-mail</div>
-          <div className="col-span-2">Tipo</div>
-          <div className="col-span-2 text-right">Ações</div>
-        </div>
+      {/* Card da tabela */}
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm">
+        {/* Contêiner ÚNICO de scroll (horizontal + vertical) */}
+        <div
+          className="max-h-[60vh] overflow-x-auto overflow-y-auto w-full max-w-full"
+          style={{
+            overscrollBehaviorX: "contain",
+            overscrollBehaviorY: "contain",
+            WebkitOverflowScrolling: "touch",
+          }}
+          role="region"
+          aria-label="Lista de usuários (scroll)"
+        >
+          {/* A largura mínima garante a barra horizontal no mobile */}
+          <div className="min-w-[720px]">
+            {/* Header sticky fica dentro do mesmo contêiner que rola */}
+            <div className="grid grid-cols-12 px-4 py-3 text-xs font-semibold text-slate-500 border-b sticky top-0 bg-white z-10">
+              <div className="col-span-4">Nome</div>
+              <div className="col-span-4">E-mail</div>
+              <div className="col-span-2">Tipo</div>
+              <div className="col-span-2 text-right">Ações</div>
+            </div>
 
-        {loading ? (
-          <div className="p-6 text-slate-500">Carregando…</div>
-        ) : filtrados.length === 0 ? (
-          <div className="p-6 text-slate-500">Nenhum usuário encontrado.</div>
-        ) : (
-          <ul className="divide-y">
-            {filtrados.map((u) => (
-              <li key={u.uid} className="grid grid-cols-12 items-center px-4 py-4">
-                <div className="col-span-4">
-                  <div className="font-medium text-slate-900">{u.nome || "—"}</div>
-                  {/* <div className="text-xs text-slate-500">UID: {u.uid}</div> */}
-                </div>
-                <div className="col-span-4 text-slate-700">{u.email}</div>
-                <div className="col-span-2">
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
-                      u.tipo === "rh"
-                        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                        : "bg-sky-50 text-sky-700 ring-sky-200"
-                    }`}
-                  >
-                    {u.tipo.toUpperCase()}
-                  </span>
-                </div>
-                <div className="col-span-2 flex justify-end">
-                  <button
-                    onClick={() => setModalDel({ open: true, alvo: u })}
-                    className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 cursor-pointer"
-                    title="Excluir usuário"
-                  >
-                    <Trash2 className="h-4 w-4" /> Excluir
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+            {/* Conteúdo */}
+            {loading ? (
+              <div className="p-6 text-slate-500">Carregando…</div>
+            ) : filtrados.length === 0 ? (
+              <div className="p-6 text-slate-500">Nenhum usuário encontrado.</div>
+            ) : (
+              <ul className="divide-y">
+                {filtrados.map((u) => (
+                  <li key={u.uid} className="grid grid-cols-12 items-center px-4 py-4">
+                    <div className="col-span-4">
+                      <div className="font-medium text-slate-900 truncate">{u.nome || "—"}</div>
+                    </div>
+                    <div className="col-span-4 text-slate-700 truncate">{u.email}</div>
+                    <div className="col-span-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
+                          u.tipo === "rh"
+                            ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                            : "bg-sky-50 text-sky-700 ring-sky-200"
+                        }`}
+                      >
+                        {u.tipo.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="col-span-2 flex justify-end">
+                      <button
+                        onClick={() => setModalDel({ open: true, alvo: u })}
+                        className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 cursor-pointer"
+                        title="Excluir usuário"
+                      >
+                        <Trash2 className="h-4 w-4" /> Excluir
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Modal Adicionar */}
       <Modal isOpen={modalAdd} onClose={() => setModalAdd(false)} title="Adicionar novo usuário">
         <div className="grid gap-2">
-          <Input
-            fullWidth
-            placeholder="Nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-          />
-          <Input
-            fullWidth
-            placeholder="E-mail"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input
-            fullWidth
-            placeholder="Senha"
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-          />
+          <Input fullWidth placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
+          <Input fullWidth placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input fullWidth placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
           <label className="text-sm text-slate-700 mt-1">Tipo de usuário</label>
           <select
             value={tipoNovo}
@@ -262,11 +258,7 @@ export default function GestaoUsuarios() {
       </Modal>
 
       {/* Modal Excluir */}
-      <Modal
-        isOpen={modalDel.open}
-        onClose={() => setModalDel({ open: false })}
-        title="Excluir usuário"
-      >
+      <Modal isOpen={modalDel.open} onClose={() => setModalDel({ open: false })} title="Excluir usuário">
         <p className="text-slate-700">
           Tem certeza de que deseja excluir o usuário{" "}
           <span className="font-semibold">{modalDel.alvo?.nome || modalDel.alvo?.email}</span>?

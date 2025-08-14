@@ -1,10 +1,12 @@
-// components/rh/RhSidebar.tsx
 'use client';
 
 import { LayoutDashboard, Inbox, UserPlus, LogOut, X } from 'lucide-react';
 import { useAuth } from '@/context/useAuth';
 import { useUserData } from '@/hooks/useUserData';
 import { useUnreadCountRH } from '@/hooks/useUnreadCountRH';
+import { useEffect, useState } from 'react';
+import { db } from '@/services/firebase'; // importa firestore client
+import { collection, doc, onSnapshot } from "firebase/firestore";
 
 interface RhSidebarProps {
   telaAtiva: 'home' | 'inbox' | 'adicionar' | 'enviadas';
@@ -26,12 +28,27 @@ export const RhSidebar = ({
 }: RhSidebarProps) => {
   const { logout, user } = useAuth();
 
-  // compat com seus dois formatos de hook:
   const ud = useUserData(user) as any;
   const empresaId = ud?.data?.empresaId ?? ud?.empresaId;
 
-  // contador realtime de não lidas
   const { count: unreadCount } = useUnreadCountRH(empresaId);
+
+  const [nomeEmpresa, setNomeEmpresa] = useState<string>("");
+
+  useEffect(() => {
+    if (!empresaId) return;
+  
+    const ref = doc(collection(db, "empresas"), empresaId);
+  
+    const unsub = onSnapshot(ref, (snapshot) => {
+      if (snapshot.exists()) {
+        const nome = snapshot.data()?.nomeEmpresa || snapshot.data()?.nome || "";
+        setNomeEmpresa(nome.length > 15 ? `${nome.slice(0, 15)}...` : nome);
+      }
+    });
+  
+    return () => unsub();
+  }, [empresaId]);
 
   const handleClick = (tela: RhSidebarProps['telaAtiva']) => {
     setTelaAtiva(tela);
@@ -47,7 +64,9 @@ export const RhSidebar = ({
         aria-label="Navegação RH"
       >
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-emerald-100">RH Dashboard</h2>
+          <h2 className="text-xl font-bold text-emerald-100">
+            {nomeEmpresa || "RH Dashboard"}
+          </h2>
           <button
             className="md:hidden cursor-pointer"
             onClick={() => setMenuAberto(false)}
@@ -120,7 +139,6 @@ export const RhSidebar = ({
         </div>
       </aside>
 
-      {/* overlay mobile */}
       {menuAberto && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"

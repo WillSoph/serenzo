@@ -22,8 +22,12 @@ export function Header() {
     >
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-        <a href="#hero" className="text-xl font-extrabold tracking-tight text-emerald-700">
-          SERENZO
+        <a href="#hero" className="flex items-center">
+          <img
+              src="/logo-serenzo.png"
+              alt="Logo Serenzo"
+              className="rounded-lg w-[140px] h-10"
+            />
         </a>
 
         {/* Desktop nav */}
@@ -63,7 +67,7 @@ export function Header() {
             <a onClick={() => setOpen(false)} href="#footer" className="py-1">Contato</a>
             <button
               onClick={() => { setOpen(false); setShowAuth(true); }}
-              className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-left"
+              className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-center"
             >
               Entrar
             </button>

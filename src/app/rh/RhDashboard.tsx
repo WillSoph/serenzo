@@ -17,7 +17,7 @@ export default function RhDashboard() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100 overflow-x-hidden">
       <RhSidebar
         telaAtiva={telaAtiva}
         setTelaAtiva={setTelaAtiva}
@@ -32,7 +32,7 @@ export default function RhDashboard() {
         onMenuClick={() => setMenuAberto(true)}
       />
 
-        <div className="pt-20 p-6">
+        <div className="pt-20 p-6 max-w-screen max-h-screen">
           {telaAtiva === 'home' && <HomeDashboard />}
           {telaAtiva === 'inbox' && <CaixaDeEntrada />}
           {telaAtiva === 'enviadas' && <MensagensEnviadas />}

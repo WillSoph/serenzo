@@ -1,15 +1,14 @@
 export const dynamic = "force-dynamic";
+
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { authAdmin, dbAdmin } from "@/services/firebaseAdmin";
-import Stripe from "stripe";
 
 export async function POST(req: Request) {
-  const body = await req.text();
+  const rawBody = await req.text();
   const signature = (await headers()).get("stripe-signature") as string;
 
   try {
-    // ✅ Import Stripe dinamicamente e valide env
     const Stripe = (await import("stripe")).default;
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -23,49 +22,128 @@ export async function POST(req: Request) {
       apiVersion: "2025-06-30.basil",
     });
 
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    // Verifica assinatura
+    const event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
 
     if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-      const customerId = session.customer as string;
+      const session = event.data.object as any; // Stripe.Checkout.Session
+      const customerId = session.customer as string | null;
+      const subscriptionId = session.subscription as string | null;
 
-      const customer = (await stripe.customers.retrieve(customerId)) as Stripe.Customer;
-      const metadata = customer.metadata;
-
-      console.log("📦 Metadados recebidos:", metadata);
-
-      if (!metadata || !metadata.email || !metadata.senha) {
-        throw new Error("Metadados incompletos na sessão do Stripe.");
+      // Carrega customer e metadata
+      let customer: any = null; // Stripe.Customer
+      if (customerId) {
+        const c = await stripe.customers.retrieve(customerId);
+        if (!("deleted" in c)) customer = c;
       }
 
-      const user = await authAdmin.createUser({
-        email: metadata.email,
-        password: metadata.senha,
-        displayName: metadata.nome
-      });
+      const customerMeta = customer?.metadata ?? {};
+      // Metadados da subscription (se já estiver criada)
+      let sub: any = null; // Stripe.Subscription
+      if (subscriptionId) {
+        sub = await stripe.subscriptions.retrieve(subscriptionId);
+      }
 
-      const empresaId = session.id;
+      // -------- 1) Dados vindos do checkout  --------
+      const md = {
+        email: customerMeta.email || session.customer_details?.email || "",
+        senha: customerMeta.senha || "",
+        nome: customerMeta.nome || "",
+        empresa: customerMeta.empresa || "",
+        telefone: customerMeta.telefone || "",
+        ramo: customerMeta.ramo || "",
+      };
 
-      await dbAdmin.collection("empresas").doc(empresaId).set({
-        nomeEmpresa: metadata.empresa,
-        telefone: metadata.telefone,
-        ramo: metadata.ramo,
-        emailAdmin: metadata.email,
-        uidAdmin: user.uid,
-        criadaEm: new Date().toISOString(),
-        plano: "mensal-ilimitado",
-      });
+      // -------- 2) Garantir usuário RH no Firebase Auth (sem duplicar) --------
+      let user;
+      try {
+        user = await authAdmin.getUserByEmail(md.email);
+      } catch {
+        // não existe -> cria
+        user = await authAdmin.createUser({
+          email: md.email,
+          password: md.senha || Math.random().toString(36).slice(2) + "A1", // fallback seguro
+          displayName: md.nome || undefined,
+        });
+      }
 
-      await dbAdmin.collection("usuarios").doc(user.uid).set({
-        nome: metadata.nome,
-        email: metadata.email,
+      // -------- 3) Definir empresaId --------
+      // prioridade: subscription.metadata.empresaId -> customer.metadata.empresaId -> user.uid
+      const empresaIdFromSub = sub?.metadata?.empresaId as string | undefined;
+      const empresaIdFromCustomer = customerMeta.empresaId as string | undefined;
+      const empresaId = (empresaIdFromSub && empresaIdFromSub.trim()) ||
+                        (empresaIdFromCustomer && empresaIdFromCustomer.trim()) ||
+                        user.uid;
+
+      // Se o customer ainda não tem empresaId, salva no Stripe para próximos eventos
+      if (customerId && !empresaIdFromCustomer) {
+        await stripe.customers.update(customerId, {
+          metadata: { ...customerMeta, empresaId },
+        });
+      }
+
+      // -------- 4) Persistir empresa --------
+      const empresaRef = dbAdmin.collection("empresas").doc(empresaId);
+
+      // Carrega subscription para status/cancelAt/período
+      let status = "incomplete";
+      let cancelAt: Date | null = null;
+      let currentPeriodEnd: Date | null = null;
+      let priceId: string | null = null;
+
+      if (sub) {
+        status = sub.status;
+        cancelAt = sub.cancel_at ? new Date(sub.cancel_at * 1000) : null;
+        currentPeriodEnd = sub.current_period_end ? new Date(sub.current_period_end * 1000) : null;
+        priceId = sub.items?.data?.[0]?.price?.id ?? null;
+      }
+
+      // Mantém seus campos + adiciona Stripe fields
+      await empresaRef.set(
+        {
+          // seus campos já usados:
+          nomeEmpresa: md.empresa || undefined,
+          telefone: md.telefone || undefined,
+          ramo: md.ramo || undefined,
+          emailAdmin: md.email || undefined,
+          uidAdmin: user.uid,
+          criadaEm: new Date().toISOString(),
+          plano: "mensal-ilimitado",
+
+          // Stripe fields:
+          stripeCustomerId: customerId,
+          stripeSubscriptionId: subscriptionId,
+          subscriptionStatus: status,
+          cancelAt,
+          currentPeriodEnd,
+          priceId,
+
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+      // -------- 5) Vincular usuário RH à empresa --------
+      await dbAdmin.collection("usuarios").doc(user.uid).set(
+        {
+          nome: md.nome || user.displayName || "",
+          email: md.email,
+          empresaId,
+          tipo: "rh",
+          criadoEm: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+
+      console.log("✔ Conta/empresa assinante atualizada via Webhook.", {
         empresaId,
-        tipo: "rh",
-        criadoEm: new Date().toISOString(),
+        customerId,
+        subscriptionId,
+        status,
       });
-
-      console.log("✔ Conta criada com sucesso via Webhook.");
     }
+
+    // (opcional) trate outros eventos: customer.subscription.updated|deleted, invoice.*, etc.
 
     return NextResponse.json({ received: true });
   } catch (err) {
