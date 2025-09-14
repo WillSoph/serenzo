@@ -4,9 +4,32 @@ import { useAuth } from "@/context/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+type BaseRole = "admin" | "rh" | "colaborador";
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles: ("admin" | "rh" | "colaborador")[];
+  allowedRoles: BaseRole[];
+}
+
+// normaliza qualquer string de role para "admin" | "rh" | "colaborador"
+function normalizeRole(input?: string | null): BaseRole | undefined {
+  if (!input) return undefined;
+  const key = String(input).trim().toLowerCase();
+
+  if (["admin", "administrator", "adm"].includes(key)) return "admin";
+  if (["rh", "recursoshumanos", "gestaorh"].includes(key)) return "rh";
+  if (["colaborador", "comum", "user", "funcionario"].includes(key)) return "colaborador";
+
+  // fallback: trate qualquer desconhecido como colaborador, se preferir
+  // return "colaborador";
+  return undefined;
+}
+
+function defaultRouteFor(role?: BaseRole) {
+  if (role === "admin") return "/admin";
+  if (role === "rh") return "/rh";
+  if (role === "colaborador") return "/colaborador";
+  return "/";
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -15,38 +38,33 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    console.log("[ProtectedRoute] Estado atual →", {
-      loading,
-      user,
-      tipo,
-    });
-  
-    if (loading) return; // Aguarde o loading terminar
-  
-    if (!user) {
-      console.log("[ProtectedRoute] Redirecionando: usuário não autenticado");
+    // evita piscar conteúdo antigo
+    setAuthorized(false);
+
+    if (loading) return;               // espera auth carregar
+    if (!user) {                       // não autenticado
       router.replace("/");
       return;
     }
-  
-    if (tipo === undefined) {
-      console.log("[ProtectedRoute] Tipo ainda não carregado...");
+
+    const role = normalizeRole(tipo);  // <-- aqui está a correção
+    if (!role) {
+      // ainda sem role conhecida; pode só aguardar ou mandar para colaborador
+      // router.replace("/colaborador");
       return;
     }
-  
-    if (!allowedRoles.includes(tipo)) {
-      console.log("[ProtectedRoute] Redirecionando: tipo não permitido", tipo);
-      router.replace("/");
+
+    // se o papel normalizado não está na lista permitida, manda para a rota padrão dele
+    if (!allowedRoles.includes(role)) {
+      router.replace(defaultRouteFor(role));
       return;
     }
-  
-    console.log("[ProtectedRoute] Acesso permitido para tipo:", tipo);
+
     setAuthorized(true);
   }, [user, tipo, loading, router, allowedRoles]);
-  
 
-  if (loading || tipo === undefined || !authorized) {
-    return <div className="w-full h-screen bg-white" />; // Placeholder visível
+  if (loading || !authorized) {
+    return <div className="w-full h-screen bg-white" />; // placeholder
   }
 
   return <>{children}</>;

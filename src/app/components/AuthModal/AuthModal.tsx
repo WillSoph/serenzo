@@ -33,6 +33,16 @@ const opcoesRamo = [
   "Outros",
 ];
 
+// 🔁 rota por tipo de usuário (aceita sinônimos)
+const ROLE_TO_ROUTE: Record<string, string> = {
+  admin: "/admin",
+  rh: "/rh",
+  colaborador: "/colaborador",
+  comum: "/colaborador",
+  user: "/colaborador",
+  funcionario: "/colaborador",
+};
+
 export function AuthModal({ onClose }: { onClose: () => void }) {
   const [isLogin, setIsLogin] = useState(true);
   const [empresa, setEmpresa] = useState("");
@@ -44,7 +54,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  // estado do "Esqueci a senha"
+  // "Esqueci a senha"
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -59,7 +69,6 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     ? email && senha
     : empresa && ramo && telefone && responsavel && email && senha;
 
-  // trava o scroll do body enquanto o modal estiver aberto
   useEffect(() => {
     const { style } = document.body;
     const prev = style.overflow;
@@ -125,15 +134,41 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     setCarregando(true);
     setErro("");
     try {
-      const role = await login(email, senha); // "admin" | "rh" | "colaborador" | undefined
-      const to = role === "admin" ? "/admin" : role === "rh" ? "/rh" : "/colaborador";
-      router.push(to);
-    } catch (err: any) {
-      setErro(err.message || "Erro ao fazer login");
+      const roleRaw = await login(email, senha);
+  
+      // normaliza o que quer que venha
+      const roleKey =
+        typeof roleRaw === "string"
+          ? roleRaw.trim().toLowerCase()
+          : typeof roleRaw === "object" && roleRaw && "role" in roleRaw
+          ? String((roleRaw as any).role ?? "").trim().toLowerCase()
+          : "";
+  
+      // qualquer coisa que não for admin/rh => colaborador
+      const destino =
+        roleKey === "admin" ? "/admin" :
+        roleKey === "rh"    ? "/rh"    :
+                              "/colaborador";
+  
+      // navega e fecha o modal
+      router.replace(destino);
+      onClose();
+    } catch (e: any) {
+      const code = e?.code || "";
+      const friendly =
+        code === "auth/invalid-email"        ? "E-mail inválido." :
+        code === "auth/user-not-found"       ? "Usuário não encontrado." :
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential"   ? "E-mail ou senha incorretos." :
+        code === "auth/too-many-requests"    ? "Muitas tentativas. Tente novamente em alguns minutos." :
+        code === "auth/user-disabled"        ? "Esta conta está desativada." :
+                                                e?.message || "Erro ao fazer login.";
+      setErro(friendly);
     } finally {
       setCarregando(false);
     }
   };
+  
 
   const openReset = () => {
     setResetEmail(email || "");
@@ -153,7 +188,6 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
         "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha nos próximos minutos."
       );
     } catch (e: any) {
-      // mensagens amigáveis
       const code = e?.code || "";
       const msg =
         code === "auth/invalid-email"
@@ -178,12 +212,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
           ref={modalRef}
           role="dialog"
           aria-modal="true"
-          className="
-            relative w-full max-w-md rounded-2xl bg-white text-slate-900
-            shadow-xl ring-1 ring-black/5
-            opacity-100
-            transition-transform
-          "
+          className="relative w-full max-w-md rounded-2xl bg-white text-slate-900 shadow-xl ring-1 ring-black/5"
         >
           <button
             onClick={onClose}
@@ -200,21 +229,57 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
 
             {!isLogin && (
               <div className="flex flex-col gap-2">
-                <Input placeholder="Nome da Empresa" value={empresa} onChange={(e) => setEmpresa(e.target.value)} fullWidth />
+                <Input
+                  placeholder="Nome da Empresa"
+                  value={empresa}
+                  onChange={(e) => {
+                    setEmpresa(e.target.value);
+                    setErro("");
+                  }}
+                  fullWidth
+                />
                 <Select
                   value={ramo}
-                  onChange={(e) => setRamo(e.target.value)}
+                  onChange={(e) => {
+                    setRamo(e.target.value);
+                    setErro("");
+                  }}
                   options={opcoesRamo.map((r) => ({ label: r, value: r }))}
                   fullWidth
                   label="Ramo de Atuação"
                 />
-                <Input placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} fullWidth />
-                <Input placeholder="Seu Nome (Admin)" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} fullWidth />
+                <Input
+                  placeholder="Telefone"
+                  value={telefone}
+                  onChange={(e) => {
+                    setTelefone(e.target.value);
+                    setErro("");
+                  }}
+                  fullWidth
+                />
+                <Input
+                  placeholder="Seu Nome (Admin)"
+                  value={responsavel}
+                  onChange={(e) => {
+                    setResponsavel(e.target.value);
+                    setErro("");
+                  }}
+                  fullWidth
+                />
               </div>
             )}
 
             <div className="flex flex-col gap-2 mt-2">
-              <Input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth />
+              <Input
+                type="email"
+                placeholder="E-mail"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErro("");
+                }}
+                fullWidth
+              />
 
               {!isLogin && (
                 <p className="text-xs text-slate-500 mb-2">
@@ -222,9 +287,17 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 </p>
               )}
 
-              <Input type="password" placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} fullWidth />
+              <Input
+                type="password"
+                placeholder="Senha"
+                value={senha}
+                onChange={(e) => {
+                  setSenha(e.target.value);
+                  setErro("");
+                }}
+                fullWidth
+              />
 
-              {/* Link Esqueci a senha (apenas no login) */}
               {isLogin && (
                 <div className="flex justify-end">
                   <button
@@ -237,13 +310,14 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 </div>
               )}
 
-              {erro && !isLogin && <div className="text-red-600 text-sm mb-2">{erro}</div>}
-
+              {/* botão */}
               <Button
                 loading={carregando}
                 disabled={
-                  !!erro ||
-                  (isLogin ? !email || !senha : !empresa || !ramo || !telefone || !responsavel || !email || !senha)
+                  carregando ||
+                  !(isLogin
+                    ? !!email && !!senha
+                    : !!empresa && !!ramo && !!telefone && !!responsavel && !!email && !!senha)
                 }
                 onClick={isLogin ? handleLogin : iniciarCheckout}
                 fullWidth
@@ -251,10 +325,20 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 {isLogin ? "Entrar" : "Cadastrar e Pagar"}
               </Button>
 
+              {/* 💥 mensagem de erro abaixo do botão (login) */}
+              {isLogin && erro && (
+                <div className="text-red-600 text-sm mt-2" role="alert">
+                  {erro}
+                </div>
+              )}
+
               <p className="text-sm text-center mt-4">
                 {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
                 <button
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setErro("");
+                  }}
                   className="text-emerald-700 underline hover:text-emerald-800 transition-colors"
                 >
                   {isLogin ? "Criar conta" : "Entrar"}

@@ -9,17 +9,15 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  PieChart,
-  Pie,
-  Legend,
-  Cell,
   LabelList,
   AreaChart,
   Area,
   CartesianGrid,
+  Cell,
 } from 'recharts';
 import {
   collectionGroup,
+  collection,
   onSnapshot,
   query,
   where,
@@ -29,7 +27,7 @@ import {
 import { db } from '@/services/firebase';
 import { useAuth } from '@/context/useAuth';
 import { useUserData } from '@/hooks/useUserData';
-import { CheckCircle2, Clock3, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock3, MessageSquare, AlertTriangle } from 'lucide-react';
 
 type Msg = {
   id: string;
@@ -38,13 +36,25 @@ type Msg = {
   tipo?: string;
   tipoDetectado?: string;
   respostaRH?: string;
-  createdAt?: any; // Timestamp | Date | string
+  createdAt?: any;
+  // possíveis campos vindos na msg
+  setor?: string;
+  departamento?: string;
+  area?: string;
+  time?: string;
+  // possíveis chaves de autor
+  uid?: string;
+  autorUid?: string;
+  userId?: string;
+  usuarioUid?: string;
+  colaboradorUid?: string;
+  remetenteUid?: string;
 };
 
 const CORES = {
-  sugestao: '#10b981', // emerald-500
-  critica: '#f59e0b',  // amber-500
-  ajuda:   '#ef4444',  // red-500
+  sugestao: '#10b981',
+  critica: '#f59e0b',
+  ajuda: '#ef4444',
 };
 
 function normalizeTipo(raw?: string) {
@@ -64,6 +74,19 @@ function fmtData(d?: any) {
   }
 }
 
+// tenta extrair o uid do autor independentemente do nome do campo
+function getAutorUid(m: Msg): string | undefined {
+  return (
+    m.autorUid ||
+    m.uid ||
+    m.userId ||
+    m.usuarioUid ||
+    m.colaboradorUid ||
+    m.remetenteUid ||
+    undefined
+  );
+}
+
 export function HomeDashboard() {
   const { user } = useAuth();
   const hook = useUserData(user) as any;
@@ -72,8 +95,9 @@ export function HomeDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Msg[]>([]);
+  const [userAreasMap, setUserAreasMap] = useState<Record<string, string>>({});
 
-  // Listener de mensagens da empresa (toda a árvore /itens) — evita "cache-first" desatualizado
+  // mensagens da empresa
   useEffect(() => {
     if (!empresaId) {
       setRows([]);
@@ -84,42 +108,77 @@ export function HomeDashboard() {
     const qy = query(
       collectionGroup(db, 'itens'),
       where('empresaId', '==', empresaId),
-      orderBy('createdAt', 'desc') // exige índice composto (console fornece o link se faltar)
+      orderBy('createdAt', 'desc')
     );
 
     setLoading(true);
-
     const unsub = onSnapshot(
       qy,
       { includeMetadataChanges: true },
       (snap) => {
-        // Ignora snapshot somente-do-cache (sem writes pendentes) para evitar dados desatualizados
-        if (snap.metadata.fromCache && !snap.metadata.hasPendingWrites) {
-          return;
-        }
+        if (snap.metadata.fromCache && !snap.metadata.hasPendingWrites) return;
         const data = snap.docs.map((d) => ({ id: d.id, ...(d.data() as DocumentData) })) as Msg[];
         setRows(data);
         setLoading(false);
       },
       () => setLoading(false)
     );
-
     return () => unsub();
   }, [empresaId]);
 
-  // Agregações derivadas
-  const { kpis, barras, serie } = useMemo(() => {
+  // 🔗 mapa uid → área/setor do usuário (top-level "usuarios" com empresaId)
+  useEffect(() => {
+    if (!empresaId) {
+      setUserAreasMap({});
+      return;
+    }
+    const qUsers = query(collection(db, 'usuarios'), where('empresaId', '==', empresaId));
+    const unsub = onSnapshot(qUsers, (snap) => {
+      const map: Record<string, string> = {};
+      snap.forEach((doc) => {
+        const d = doc.data() as any;
+        const uid = d?.uid || doc.id;
+        const area =
+          d?.area || d?.setor || d?.departamento || d?.time || 'Sem setor';
+        if (uid) map[uid] = String(area);
+      });
+      setUserAreasMap(map);
+    });
+    return () => unsub();
+  }, [empresaId]);
+
+  const { kpis, barras, serie, setoresAtencao } = useMemo(() => {
     const total = rows.length;
     const respondidas = rows.filter((m) => !!m.respostaRH?.trim()).length;
     const pendentes = total - respondidas;
 
     const counts = { sugestao: 0, critica: 0, ajuda: 0 };
+    const setoresAgg: Record<
+      string,
+      { setor: string; criticas: number; pedidosAjuda: number; total: number }
+    > = {};
+
     rows.forEach((m) => {
       const tipo = normalizeTipo(m.tipoDetectado || m.tipo);
-      if (counts[tipo as keyof typeof counts] !== undefined) {
-        counts[tipo as keyof typeof counts] += 1;
-      } else {
-        counts.sugestao += 1;
+
+      // barras por tipo
+      if ((counts as any)[tipo] !== undefined) (counts as any)[tipo] += 1;
+      else counts.sugestao += 1;
+
+      // setor: tenta dos campos da msg; se não houver, cai na área do autor; senão "Sem setor"
+      const autorUid = getAutorUid(m);
+      const setorMsg =
+        m.setor || m.departamento || m.area || m.time || (autorUid ? userAreasMap[autorUid] : '');
+      const setor = setorMsg ? String(setorMsg) : 'Sem setor';
+
+      // agrega apenas críticas e pedidos de ajuda
+      if (tipo === 'critica' || tipo === 'ajuda') {
+        if (!setoresAgg[setor]) {
+          setoresAgg[setor] = { setor, criticas: 0, pedidosAjuda: 0, total: 0 };
+        }
+        if (tipo === 'critica') setoresAgg[setor].criticas += 1;
+        if (tipo === 'ajuda') setoresAgg[setor].pedidosAjuda += 1;
+        setoresAgg[setor].total = setoresAgg[setor].criticas + setoresAgg[setor].pedidosAjuda;
       }
     });
 
@@ -129,7 +188,7 @@ export function HomeDashboard() {
       { tipo: 'Pedidos de Ajuda', total: counts.ajuda, key: 'ajuda' },
     ];
 
-    // Série últimos 14 dias
+    // série últimos 14 dias
     const days = 14;
     const today = new Date();
     const start = new Date(today);
@@ -144,17 +203,16 @@ export function HomeDashboard() {
       );
     }
     rows.forEach((m) => {
-      const label = fmtData(m.createdAt).slice(0, 5); // dd/mm
+      const label = fmtData(m.createdAt).slice(0, 5);
       if (bucket.has(label)) bucket.set(label, (bucket.get(label) || 0) + 1);
     });
     const serie = Array.from(bucket.entries()).map(([dia, total]) => ({ dia, total }));
 
-    return {
-      kpis: { total, respondidas, pendentes },
-      barras,
-      serie,
-    };
-  }, [rows]);
+    // ordena setores por maior atenção
+    const setoresAtencao = Object.values(setoresAgg).sort((a, b) => b.total - a.total);
+
+    return { kpis: { total, respondidas, pendentes }, barras, serie, setoresAtencao };
+  }, [rows, userAreasMap]);
 
   return (
     <div className="space-y-6">
@@ -183,32 +241,75 @@ export function HomeDashboard() {
         </div>
       </section>
 
-      {/* Gráfico 1 — Barras por tipo */}
-      <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-emerald-900">Distribuição por tipo</h2>
+      {/* Distribuição por tipo + Setores com atenção */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-emerald-900">Distribuição por tipo</h2>
+          </div>
+
+          {loading ? (
+            <div className="h-[260px] rounded-xl bg-emerald-50 animate-pulse" />
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={barras}>
+                <XAxis dataKey="tipo" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+                  {barras.map((b, i) => (
+                    <Cell key={i} fill={CORES[b.key as keyof typeof CORES]} />
+                  ))}
+                  <LabelList dataKey="total" position="top" />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
-        {loading ? (
-          <div className="h-56 rounded-xl bg-emerald-50 animate-pulse" />
-        ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={barras}>
-              <XAxis dataKey="tipo" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Bar dataKey="total" radius={[6, 6, 0, 0]}>
-                {barras.map((b, i) => (
-                  <Cell key={i} fill={CORES[b.key as keyof typeof CORES]} />
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              Setores que precisam de atenção
+            </h2>
+          </div>
+
+          {loading ? (
+            <div className="h-[260px] rounded-xl bg-emerald-50 animate-pulse" />
+          ) : setoresAtencao.length === 0 ? (
+            <div className="h-[260px] flex items-center justify-center text-slate-500 text-sm">
+              Nenhum setor com críticas ou pedidos de ajuda.
+            </div>
+          ) : (
+            <div className="h-[260px] overflow-auto pr-1">
+              <ul className="divide-y divide-slate-100">
+                {setoresAtencao.map((s, idx) => (
+                  <li key={s.setor} className="py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-6 text-slate-400 text-sm tabular-nums">{idx + 1}.</span>
+                      <span className="font-medium text-slate-800 truncate">{s.setor}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
+                        {s.criticas} críticas
+                      </span>
+                      <span className="text-xs rounded-full bg-red-100 text-red-700 px-2 py-0.5">
+                        {s.pedidosAjuda} pedidos
+                      </span>
+                      <span className="text-xs rounded-full bg-slate-100 text-slate-700 px-2 py-0.5">
+                        {s.total} total
+                      </span>
+                    </div>
+                  </li>
                 ))}
-                <LabelList dataKey="total" position="top" />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
+              </ul>
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* Gráfico 2 — Série temporal últimos 14 dias */}
+      {/* Série temporal últimos 14 dias */}
       <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-emerald-900">

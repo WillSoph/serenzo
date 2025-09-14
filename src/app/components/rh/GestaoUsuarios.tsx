@@ -8,8 +8,11 @@ import { Modal } from "../Dashboard/Modal";
 import { useAuth } from "@/context/useAuth";
 import { useUserData } from "@/hooks/useUserData";
 import { Plus, Search, Trash2, Users } from "lucide-react";
+import { AREAS } from "@/data/areas";
+import { TipoChip } from "../TipoChip/TipoChip";
+import { AreaBadge } from "../AreaBadge/AreaBadge";
 
-type TipoUsuario = "colaborador" | "rh";
+type TipoUsuario = 'admin' | 'comum' | 'rh' | 'colaborador';
 
 type UsuarioLite = {
   uid: string;
@@ -18,6 +21,7 @@ type UsuarioLite = {
   tipo: TipoUsuario;
   empresaId: string;
   criadoEm?: string;
+  area?: string;
 };
 
 export default function GestaoUsuarios() {
@@ -34,6 +38,7 @@ export default function GestaoUsuarios() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [tipoNovo, setTipoNovo] = useState<TipoUsuario>("colaborador");
+  const [area, setArea] = useState(""); // 👈 novo
   const [salvando, setSalvando] = useState(false);
   const [erroAdd, setErroAdd] = useState("");
 
@@ -43,17 +48,26 @@ export default function GestaoUsuarios() {
   const [erroDel, setErroDel] = useState("");
 
   const empresaId = userData?.empresaId;
-  const podeSalvar = !!nome && !!email && !!senha && !!empresaId && !salvando;
+  const podeSalvar = !!nome && !!email && !!senha && !!empresaId && !!area && !salvando;
 
+  function normalizeTipo(t?: string) {
+    const v = String(t || '').toLowerCase().trim();
+    if (v === 'rh' || v === 'admin') return 'admin';
+    return 'comum';
+  }
+  
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q) return usuarios;
-    return usuarios.filter(
-      (u) =>
-        u.nome.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        u.tipo.toLowerCase().includes(q)
-    );
+    return usuarios.filter((u) => {
+      const tipoNorm = normalizeTipo(u.tipo);
+      return (
+        (u.nome || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        tipoNorm.includes(q) ||
+        (u.area || '').toLowerCase().includes(q)
+      );
+    });
   }, [usuarios, busca]);
 
   async function carregar() {
@@ -64,7 +78,8 @@ export default function GestaoUsuarios() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ empresaId }),
-      });
+        cache: "no-store",               // ⬅️ evita cache da rota
+      });      
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Falha ao listar usuários.");
       setUsuarios(data.usuarios || []);
@@ -87,14 +102,16 @@ export default function GestaoUsuarios() {
       const res = await fetch("/api/adicionar-usuario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, email, senha, empresaId, tipo: tipoNovo }),
+        body: JSON.stringify({ nome, email, senha, empresaId, tipo: tipoNovo, area }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Erro ao adicionar usuário.");
+      // reset
       setNome("");
       setEmail("");
       setSenha("");
       setTipoNovo("colaborador");
+      setArea("");
       setModalAdd(false);
       carregar();
     } catch (e: any) {
@@ -107,22 +124,31 @@ export default function GestaoUsuarios() {
   async function excluirUsuario(uid: string) {
     setExcluindo(true);
     setErroDel("");
+  
+    // remoção otimista
+    const backup = usuarios;
+    setUsuarios((prev) => prev.filter((u) => u.uid !== uid));
+  
     try {
       const res = await fetch("/api/excluir-usuario", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid }),
+        body: JSON.stringify({ uid, empresaId }), // ⬅️ passa empresaId
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Erro ao excluir usuário.");
+      if (!res.ok || !data?.ok) throw new Error(data?.error || "Erro ao excluir usuário.");
+  
       setModalDel({ open: false });
-      carregar();
+      await carregar(); // garante consistência
     } catch (e: any) {
+      setUsuarios(backup); // rollback se falhar
       setErroDel(e.message || "Erro inesperado.");
     } finally {
       setExcluindo(false);
     }
   }
+  
+  
 
   return (
     <div className="mx-auto">
@@ -144,13 +170,13 @@ export default function GestaoUsuarios() {
         </Button>
       </div>
 
-      {/* Barra de busca */}
+      {/* Busca */}
       <div className="mb-4 flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
-            placeholder="Buscar por nome, e-mail ou tipo…"
+            placeholder="Buscar por nome, e-mail, tipo ou área…"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -158,30 +184,23 @@ export default function GestaoUsuarios() {
         <div className="text-sm text-slate-500">{filtrados.length} resultado(s)</div>
       </div>
 
-      {/* Card da tabela */}
+      {/* Tabela */}
       <div className="bg-white border border-slate-100 rounded-2xl shadow-sm">
-        {/* Contêiner ÚNICO de scroll (horizontal + vertical) */}
         <div
           className="max-h-[60vh] overflow-x-auto overflow-y-auto w-full max-w-full"
-          style={{
-            overscrollBehaviorX: "contain",
-            overscrollBehaviorY: "contain",
-            WebkitOverflowScrolling: "touch",
-          }}
+          style={{ overscrollBehaviorX: "contain", overscrollBehaviorY: "contain", WebkitOverflowScrolling: "touch" }}
           role="region"
           aria-label="Lista de usuários (scroll)"
         >
-          {/* A largura mínima garante a barra horizontal no mobile */}
-          <div className="min-w-[720px]">
-            {/* Header sticky fica dentro do mesmo contêiner que rola */}
-            <div className="grid grid-cols-12 px-4 py-3 text-xs font-semibold text-slate-500 border-b sticky top-0 bg-white z-10">
-              <div className="col-span-4">Nome</div>
-              <div className="col-span-4">E-mail</div>
-              <div className="col-span-2">Tipo</div>
-              <div className="col-span-2 text-right">Ações</div>
-            </div>
+          <div className="min-w-[1040px]">{/* +160px para futura coluna de área, se quiser exibir depois */}
+          <div className="grid grid-cols-12 px-4 py-3 text-xs font-semibold text-slate-500 border-b sticky top-0 bg-white z-10">
+            <div className="col-span-3">Nome</div>
+            <div className="col-span-4">E-mail</div>
+            <div className="col-span-3">Área</div>
+            <div className="col-span-1">Tipo</div>
+            <div className="col-span-1 text-right">Ações</div>
+          </div>
 
-            {/* Conteúdo */}
             {loading ? (
               <div className="p-6 text-slate-500">Carregando…</div>
             ) : filtrados.length === 0 ? (
@@ -190,31 +209,32 @@ export default function GestaoUsuarios() {
               <ul className="divide-y">
                 {filtrados.map((u) => (
                   <li key={u.uid} className="grid grid-cols-12 items-center px-4 py-4">
-                    <div className="col-span-4">
-                      <div className="font-medium text-slate-900 truncate">{u.nome || "—"}</div>
-                    </div>
-                    <div className="col-span-4 text-slate-700 truncate">{u.email}</div>
-                    <div className="col-span-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
-                          u.tipo === "rh"
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                            : "bg-sky-50 text-sky-700 ring-sky-200"
-                        }`}
-                      >
-                        {u.tipo.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="col-span-2 flex justify-end">
-                      <button
-                        onClick={() => setModalDel({ open: true, alvo: u })}
-                        className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 cursor-pointer"
-                        title="Excluir usuário"
-                      >
-                        <Trash2 className="h-4 w-4" /> Excluir
-                      </button>
-                    </div>
-                  </li>
+                  <div className="col-span-3">
+                    <div className="font-medium text-emerald-900 truncate">{u.nome || "—"}</div>
+                  </div>
+                
+                  <div className="col-span-4 text-emerald-800 truncate">{u.email}</div>
+                
+                  <div className="col-span-3">
+                    <AreaBadge area={u.area} />
+                  </div>
+                
+                  <div className="col-span-1">
+                    <TipoChip tipo={u.tipo} />
+                  </div>
+                
+                  <div className="col-span-1 flex justify-end">
+                    <Button
+                      variant="destructive"
+                      onClick={() => setModalDel({ open: true, alvo: u })}
+                      className="h-8 px-3 text-sm inline-flex items-center gap-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir
+                    </Button>
+                  </div>
+                </li>
+                
                 ))}
               </ul>
             )}
@@ -228,14 +248,27 @@ export default function GestaoUsuarios() {
           <Input fullWidth placeholder="Nome" value={nome} onChange={(e) => setNome(e.target.value)} />
           <Input fullWidth placeholder="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <Input fullWidth placeholder="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} />
+
           <label className="text-sm text-slate-700 mt-1">Tipo de usuário</label>
           <select
             value={tipoNovo}
             onChange={(e) => setTipoNovo(e.target.value as TipoUsuario)}
             className="w-full border rounded px-3 py-2 bg-white"
           >
-            <option value="colaborador">Colaborador</option>
-            <option value="rh">RH</option>
+            <option value="comum">Comum</option>
+            <option value="admin">Admin</option>
+          </select>
+
+          <label className="text-sm text-slate-700 mt-3">Área / Setor</label>
+          <select
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            className="w-full border rounded px-3 py-2 bg-white"
+          >
+            <option value="" disabled>Selecione a área…</option>
+            {AREAS.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
           </select>
 
           {!userLoading && !empresaId && (

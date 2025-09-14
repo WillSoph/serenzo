@@ -41,12 +41,7 @@ export const ColaboradorHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderP
 
       <div className="ml-auto flex items-center space-x-4">
         <div className="relative">
-          <Bell className="w-6 h-6 text-gray-700" />
-          {(mensagensNaoVistas?.inbox || mensagensNaoVistas?.ajuda) > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1">
-              {mensagensNaoVistas.inbox + mensagensNaoVistas.ajuda}
-            </span>
-          )}
+          
         </div>
         <div className="text-sm text-gray-700">{user?.email}</div>
       </div>

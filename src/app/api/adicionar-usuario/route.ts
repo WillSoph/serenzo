@@ -4,39 +4,31 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { authAdmin, dbAdmin } from "@/services/firebaseAdmin";
 
-/**
- * Espera receber no body (JSON):
- * { nome: string, email: string, senha: string, empresaId: string, tipo?: "colaborador" | "rh" }
- *
- * Fluxo:
- * - valida campos
- * - verifica se já existe usuário com esse email
- * - cria usuário no Firebase Auth
- * - grava documento em "usuarios/{uid}"
- * - grava documento em "empresas/{empresaId}/usuarios/{uid}"
- */
+// normaliza qualquer valor recebido para "admin" | "comum"
+function normalizePerfil(v: string | undefined | null): "admin" | "comum" {
+  const t = String(v || "").toLowerCase().trim();
+  if (t === "rh" || t === "admin") return "admin";
+  return "comum"; // colaborador/comum/default
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { nome, email, senha, empresaId, tipo } = await req.json();
+    const { nome, email, senha, empresaId, tipo, area } = await req.json();
 
-    // Validação simples
-    if (!nome || !email || !senha || !empresaId) {
+    if (!nome || !email || !senha || !empresaId || !area) {
       return NextResponse.json(
-        { error: "Campos obrigatórios: nome, email, senha, empresaId." },
+        { error: "Campos obrigatórios: nome, email, senha, empresaId, area." },
         { status: 400 }
       );
     }
 
-    const perfil: "colaborador" | "rh" = (tipo === "rh" ? "rh" : "colaborador");
+    const perfil = normalizePerfil(tipo);
 
-    // Verifica se já existe usuário com esse email
+    // já existe?
     let userRecord;
     try {
       userRecord = await authAdmin.getUserByEmail(email);
-    } catch {
-      // se cair aqui, é porque não encontrou (ok)
-    }
-
+    } catch {}
     if (userRecord?.uid) {
       return NextResponse.json(
         { error: "E-mail já está cadastrado.", code: "email-already-exists" },
@@ -44,7 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Cria usuário no Auth
+    // cria no Auth
     const novoUser = await authAdmin.createUser({
       displayName: nome,
       email,
@@ -54,20 +46,18 @@ export async function POST(req: NextRequest) {
     const uid = novoUser.uid;
     const agoraISO = new Date().toISOString();
 
-    // Documento principal do usuário
     const usuarioDoc = {
+      uid,
       nome,
       email,
-      tipo: perfil,        // "colaborador" (default) ou "rh"
+      tipo: perfil, // "admin" | "comum"
       empresaId,
+      area,
       criadoEm: agoraISO,
-      uid,
     };
 
-    // Grava em "usuarios/{uid}"
     await dbAdmin.collection("usuarios").doc(uid).set(usuarioDoc);
 
-    // Grava também em "empresas/{empresaId}/usuarios/{uid}"
     await dbAdmin
       .collection("empresas")
       .doc(empresaId)
@@ -77,23 +67,21 @@ export async function POST(req: NextRequest) {
         uid,
         nome,
         email,
-        tipo: perfil,
+        tipo: perfil, // "admin" | "comum"
+        area,
         criadoEm: agoraISO,
       });
 
     return NextResponse.json({ ok: true, uid });
   } catch (err: any) {
-    // Tratamento de erros comuns do Admin SDK
     const msg = err?.message || "Erro interno.";
     const code = err?.errorInfo?.code || err?.code;
-
     if (code === "auth/email-already-exists") {
       return NextResponse.json(
         { error: "E-mail já está cadastrado.", code },
         { status: 409 }
       );
     }
-
     console.error("❌ Erro em /api/adicionar-usuario:", err);
     return NextResponse.json({ error: msg }, { status: 500 });
   }

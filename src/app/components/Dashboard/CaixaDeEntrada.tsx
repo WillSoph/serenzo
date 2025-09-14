@@ -119,59 +119,65 @@ export function CaixaDeEntrada() {
   }
 
   return (
-    <div className="space-y-4">
-      {mensagens.map((m) => (
-        <article key={m.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm text-slate-500">
-                {m.nomeUsuario || 'Colaborador'} · {(m.tipoDetectado || m.tipo || '').toString()}
-              </p>
-              <p className="mt-1 text-slate-800 whitespace-pre-wrap">{m.conteudo}</p>
-
-              {m.respostaIA && (
-                <div className="mt-3 rounded-lg bg-emerald-50 border border-emerald-100 p-3">
-                  <p className="text-xs font-medium text-emerald-800">Análise automática</p>
-                  <p className="text-sm text-emerald-900 mt-1">{m.respostaIA}</p>
-                </div>
-              )}
-
-              {m.respostaRH && (
-                <div className="mt-3 border-t pt-3">
-                  <p className="text-xs font-medium text-slate-600">Sua resposta</p>
-                  <p className="text-sm text-slate-800 mt-1">{m.respostaRH}</p>
-                </div>
-              )}
+    <div className="space-y-4 max-h-[calc(100vh-100px)] overflow-auto pr-2">
+      {mensagens.map((m) => {
+        // preferir o novo campo; manter compat com itens antigos
+        const orientacao = m.orientacaoRH ?? m.respostaIA;
+        const tipoMostrado = (m.tipo ?? m.tipoDetectado ?? '').toString();
+  
+        return (
+          <article key={m.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm text-slate-500">
+                  {m.nomeUsuario || 'Colaborador'} · {tipoMostrado}
+                </p>
+                <p className="mt-1 text-slate-800 whitespace-pre-wrap">{m.conteudo}</p>
+  
+                {orientacao && (
+                  <div className="mt-3 rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                    <p className="text-xs font-medium text-emerald-800">Orientação para RH</p>
+                    <p className="text-sm text-emerald-900 mt-1">{orientacao}</p>
+                  </div>
+                )}
+  
+                {m.respostaRH && (
+                  <div className="mt-3 border-t pt-3">
+                    <p className="text-xs font-medium text-slate-600">Sua resposta</p>
+                    <p className="text-sm text-slate-800 mt-1">{m.respostaRH}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
-          {!m.respostaRH && (
-            <form
-              className="mt-4 flex w-full gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const input = e.currentTarget.elements.namedItem('resposta') as HTMLInputElement | null;
-                const texto = input?.value.trim();
-                if (!texto) return;
-                responder(m, texto);
-                if (input) input.value = '';
-              }}
-            >
-              <input
-                name="resposta"
-                className="flex-1 border border-slate-300 rounded-lg px-3 py-2"
-                placeholder="Escreva uma resposta ao colaborador…"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+  
+            {!m.respostaRH && (
+              <form
+                className="mt-4 flex w-full gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const input = e.currentTarget.elements.namedItem('resposta') as HTMLInputElement | null;
+                  const texto = input?.value.trim();
+                  if (!texto) return;
+                  responder(m, texto);
+                  if (input) input.value = '';
+                }}
               >
-                Enviar
-              </button>
-            </form>
-          )}
-        </article>
-      ))}
+                <input
+                  name="resposta"
+                  className="flex-1 border border-slate-300 rounded-lg px-3 py-2"
+                  placeholder="Escreva uma resposta ao colaborador…"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  Enviar
+                </button>
+              </form>
+            )}
+          </article>
+        );
+      })}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-// /app/api/analisar-texto/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -13,10 +12,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "OPENAI_API_KEY ausente no ambiente." }, { status: 500 });
     }
 
+    // ⚠️ Agora pedimos APENAS classificação + orientação ao RH (nada para o colaborador)
     const system =
-      "Você é um assistente de RH. Analise a mensagem enviada por um colaborador e classifique como 'sugestao', 'critica', 'ajuda' ou 'elogio'. \
-Responda com empatia e profissionalismo. \
-Retorne APENAS um JSON com o formato: { \"tipoDetectado\": \"sugestao|critica|ajuda|elogio\", \"resposta\": \"texto\" }.";
+  "Você é um assistente de RH. Sua missão é analisar a mensagem enviada por um colaborador e classificá-la como 'sugestao', 'critica', 'ajuda' ou 'elogio'. \
+  Regras importantes: \
+  - Se o texto mencionar assédio, abuso, violência, depressão, burnout, ideação suicida, discriminação, vícios, ameaças ou qualquer situação de risco à saúde ou segurança, SEMPRE classifique como 'ajuda'. \
+  - Use 'critica' apenas para reclamações menos graves, como sobre gestão, processos, políticas ou infraestrutura. \
+  - 'Sugestao' é para melhorias ou novas ideias. \
+  - 'Elogio' é para feedbacks positivos. \
+  Retorne APENAS um JSON no formato: { \"tipoDetectado\": \"sugestao|critica|ajuda|elogio\", \"orientacaoRH\": \"texto\" }.";
+ 
 
     const resp = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -30,11 +35,11 @@ Retorne APENAS um JSON com o formato: { \"tipoDetectado\": \"sugestao|critica|aj
           { role: "system", content: system },
           { role: "user", content: texto },
         ],
-        temperature: 0.5,
+        temperature: 0.3,
         text: {
           format: {
             type: "json_schema",
-            name: "AnaliseMensagem",
+            name: "AnaliseMensagemRH",
             schema: {
               type: "object",
               additionalProperties: false,
@@ -43,9 +48,9 @@ Retorne APENAS um JSON com o formato: { \"tipoDetectado\": \"sugestao|critica|aj
                   type: "string",
                   enum: ["sugestao", "critica", "ajuda", "elogio"],
                 },
-                resposta: { type: "string" },
+                orientacaoRH: { type: "string" },
               },
-              required: ["tipoDetectado", "resposta"],
+              required: ["tipoDetectado", "orientacaoRH"],
             },
           },
         },
@@ -63,17 +68,16 @@ Retorne APENAS um JSON com o formato: { \"tipoDetectado\": \"sugestao|critica|aj
     // Preferir output_text; fallback para estrutura output
     let rawText: string | undefined = data.output_text;
     if (!rawText) rawText = data.output?.[0]?.content?.[0]?.text;
-
     if (!rawText) {
       return NextResponse.json({ error: "Resposta vazia do OpenAI." }, { status: 502 });
     }
 
-    let parsed: { tipoDetectado: string; resposta: string };
+    let parsed: { tipoDetectado: "sugestao" | "critica" | "ajuda" | "elogio"; orientacaoRH: string };
     try {
       parsed = JSON.parse(rawText);
     } catch {
-      // Se vier texto puro, faz um fallback básico
-      parsed = { tipoDetectado: "sugestao", resposta: rawText };
+      // fallback minimalista
+      parsed = { tipoDetectado: "sugestao", orientacaoRH: rawText };
     }
 
     return NextResponse.json(parsed);

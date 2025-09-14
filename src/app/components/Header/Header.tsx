@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AuthModal } from '../AuthModal/AuthModal';
 import { Menu, X } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 export function Header() {
   const [showAuth, setShowAuth] = useState(false);
@@ -39,12 +40,12 @@ export function Header() {
         </nav>
 
         <div className="hidden md:block">
-          <button
+          <Button
             onClick={() => setShowAuth(true)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
           >
             Entrar
-          </button>
+          </Button>
         </div>
 
         {/* Mobile button */}

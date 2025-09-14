@@ -10,6 +10,7 @@ import { useResumeSubscription } from "@/hooks/useResumeSubscription";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import toast, { Toaster } from "react-hot-toast";
 import { Modal } from "../Dashboard/Modal";
+import { Input } from "../ui/Input";
 
 interface RhHeaderProps {
   mensagensNaoVistas: { inbox: number; enviadas: number; ajuda: number };
@@ -30,6 +31,66 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
   const { cancelRequest, loading: canceling } = useCancelSubscription(empresaId);
   const { resume, loading: resuming } = useResumeSubscription(empresaId);
   const { cancelAt } = useSubscriptionStatus(empresaId);
+
+  // ====== Modal "Informações de contato" ======
+  const [showContatoModal, setShowContatoModal] = useState(false);
+  const [contatoEmail, setContatoEmail] = useState("");
+  const [contatoTel, setContatoTel] = useState("");
+  const [contatoHorario, setContatoHorario] = useState("");
+  const [savingContato, setSavingContato] = useState(false);
+  const [loadingContato, setLoadingContato] = useState(false);
+  const [contatoErr, setContatoErr] = useState("");
+
+  const openContato = async () => {
+    if (!empresaId) {
+      toast.error("Empresa não identificada.");
+      return;
+    }
+    setMenuOpen(false);
+    setContatoErr("");
+    setShowContatoModal(true);
+    setLoadingContato(true);
+    try {
+      const res = await fetch(`/api/contato-rh?empresaId=${empresaId}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Falha ao carregar.");
+      const c = data?.contatoRH || {};
+      setContatoEmail(c.email || "");
+      setContatoTel(c.telefone || "");
+      setContatoHorario(c.atendimento || "");
+    } catch (e: any) {
+      setContatoErr(e?.message || "Erro ao carregar.");
+    } finally {
+      setLoadingContato(false);
+    }
+  };
+
+  const saveContato = async () => {
+    if (!empresaId) return;
+    setSavingContato(true);
+    setContatoErr("");
+    try {
+      const res = await fetch("/api/contato-rh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          empresaId,
+          email: contatoEmail,
+          telefone: contatoTel,
+          atendimento: contatoHorario,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Falha ao salvar.");
+      toast.success("Informações de contato salvas.");
+      setShowContatoModal(false);
+    } catch (e: any) {
+      setContatoErr(e?.message || "Erro ao salvar.");
+    } finally {
+      setSavingContato(false);
+    }
+  };
+  // ==========================================
 
   const hasScheduledCancel = useMemo(() => {
     if (!cancelAt) return false;
@@ -70,17 +131,13 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
     }
 
     const promise = (async () => {
-      // 1) primeira tentativa
       let res = await cancelRequest();
 
-      // 2) se falhar por "Assinatura não encontrada", roda backfill e tenta de novo
       if (!res.ok) {
         let errJson: any = null;
         try {
           errJson = await res.clone().json();
-        } catch {
-          /* ignore parse error */
-        }
+        } catch {}
         const msg: string = errJson?.error || "";
         if (msg.toLowerCase().includes("assinatura não encontrada")) {
           await fetch("/api/backfill-subscription", {
@@ -93,7 +150,6 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
       }
 
       if (!res.ok) {
-        // propaga erro amigável
         let cause = "Falha ao cancelar.";
         try {
           const e = await res.json();
@@ -102,7 +158,7 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
         throw new Error(cause);
       }
 
-      const json = await res.json(); // { ok, status, cancelAt }
+      const json = await res.json();
       return json as { ok: boolean; status?: string; cancelAt?: number };
     })();
 
@@ -186,6 +242,16 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
             </div>
 
             <div className="p-1">
+              <button
+                onClick={openContato}
+                className="flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sm
+                        text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                role="menuitem"
+              >
+                Informações de contato
+              </button>
+
               {!hasScheduledCancel ? (
                 <button
                   onClick={() => {
@@ -250,7 +316,59 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
         </div>
       </Modal>
 
-      {/* Toaster (se já houver global, pode remover aqui) */}
+      {/* Modal: Informações de contato */}
+      <Modal
+        isOpen={showContatoModal}
+        title="Informações de contato"
+        onClose={() => setShowContatoModal(false)}
+      >
+        {loadingContato ? (
+          <div className="p-2 text-slate-600">Carregando…</div>
+        ) : (
+          <div className="space-y-3">
+            <Input
+              fullWidth
+              placeholder="E-mail do RH (ex: rh@empresa.com)"
+              value={contatoEmail}
+              onChange={(e) => setContatoEmail(e.target.value)}
+            />
+            <Input
+              fullWidth
+              placeholder="Telefone (ex: (11) 4000-0000)"
+              value={contatoTel}
+              onChange={(e) => setContatoTel(e.target.value)}
+            />
+            <Input
+              fullWidth
+              placeholder="Horário de atendimento (ex: seg. a sex., 9h–18h)"
+              value={contatoHorario}
+              onChange={(e) => setContatoHorario(e.target.value)}
+            />
+
+            {contatoErr && <p className="text-sm text-rose-600">{contatoErr}</p>}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setShowContatoModal(false)}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                disabled={savingContato}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveContato}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 inline-flex items-center gap-2"
+                disabled={savingContato}
+              >
+                {savingContato && <Loader2 className="w-4 h-4 animate-spin" />}
+                Salvar
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Toaster */}
       <Toaster
         position="top-right"
         toastOptions={{

@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
         telefone,
         responsavel,
         email,
-        tipo: "rh",
+        tipo: "admin",
         uid: userRecord.uid,
         empresaId,
         criadoEm: new Date().toISOString(),
@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
       {
         email,
         nome: responsavel,
-        tipo: "rh",
+        tipo: "admin",
         uid: userRecord.uid,
         empresaId,
         criadoEm: new Date().toISOString(),
