@@ -54,6 +54,9 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
+  // 👇 NOVO: código promocional (opcional, só no cadastro)
+  const [promoCode, setPromoCode] = useState("");
+
   // "Esqueci a senha"
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -113,7 +116,8 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha }),
+        // 👇 envia o promoCode para o backend (aplicar automaticamente no Checkout)
+        body: JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha, promoCode }),
       });
       const data = await res.json();
       if (data?.url) {
@@ -135,7 +139,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     setErro("");
     try {
       const roleRaw = await login(email, senha);
-  
+
       // normaliza o que quer que venha
       const roleKey =
         typeof roleRaw === "string"
@@ -143,13 +147,13 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
           : typeof roleRaw === "object" && roleRaw && "role" in roleRaw
           ? String((roleRaw as any).role ?? "").trim().toLowerCase()
           : "";
-  
+
       // qualquer coisa que não for admin/rh => colaborador
       const destino =
         roleKey === "admin" ? "/admin" :
         roleKey === "rh"    ? "/rh"    :
                               "/colaborador";
-  
+
       // navega e fecha o modal
       router.replace(destino);
       onClose();
@@ -168,7 +172,6 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
       setCarregando(false);
     }
   };
-  
 
   const openReset = () => {
     setResetEmail(email || "");
@@ -266,6 +269,17 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                   }}
                   fullWidth
                 />
+
+                {/* 👇 NOVO: Código promocional (opcional) */}
+                <Input
+                  placeholder="Código promocional (opcional)"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.trim())}
+                  fullWidth
+                />
+                <p className="text-xs text-slate-500 -mt-1">
+                  Se você recebeu um código (ex.: SERENZO1M), informe aqui. Também é possível aplicar direto no Checkout.
+                </p>
               </div>
             )}
 
@@ -317,7 +331,8 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                   carregando ||
                   !(isLogin
                     ? !!email && !!senha
-                    : !!empresa && !!ramo && !!telefone && !!responsavel && !!email && !!senha)
+                    : !!empresa && !!ramo && !!telefone && !!responsavel && !!email && !!senha) ||
+                  (!isLogin && !!erro) // evita prosseguir se e-mail já existir
                 }
                 onClick={isLogin ? handleLogin : iniciarCheckout}
                 fullWidth

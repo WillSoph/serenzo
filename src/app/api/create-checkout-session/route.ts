@@ -1,59 +1,110 @@
+// app/api/create-checkout-session/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+
+type CreateCheckoutBody = {
+  empresa: string;
+  ramo: string;
+  telefone: string;
+  responsavel: string;
+  email: string;
+  senha: string;
+  empresaId?: string;
+  promoCode?: string;
+};
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { empresa, ramo, telefone, responsavel, email, senha, empresaId } = body as {
-    empresa: string;
-    ramo: string;
-    telefone: string;
-    responsavel: string;
-    email: string;
-    senha: string;
-    // opcional: se você já tiver empresaId antes do checkout, pode enviar
-    empresaId?: string;
-  };
+  const {
+    empresa,
+    ramo,
+    telefone,
+    responsavel,
+    email,
+    senha,
+    empresaId,
+    promoCode, // opcional
+  } = (await req.json()) as CreateCheckoutBody;
 
   try {
-    const Stripe = (await import("stripe")).default;
     const stripeKey = process.env.STRIPE_SECRET_KEY;
+    const priceId = process.env.STRIPE_PRICE_ID;
 
     if (!stripeKey) {
       console.error("STRIPE_SECRET_KEY não definida.");
-      return NextResponse.json({ error: "Configuração inválida do Stripe." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Configuração inválida do Stripe." },
+        { status: 500 }
+      );
+    }
+    if (!priceId) {
+      console.error("STRIPE_PRICE_ID não definida.");
+      return NextResponse.json(
+        { error: "Preço do plano não configurado." },
+        { status: 500 }
+      );
     }
 
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-06-30.basil",
     });
 
-    // 1) Customer com metadata rica (inclui empresaId se você já tiver)
+    // 1) Cria o Customer com metadata rica
     const customer = await stripe.customers.create({
       email,
       metadata: {
-        // dados úteis pro webhook
-        empresaId: empresaId || "", // se não tiver ainda, deixamos vazio e preenchermos no webhook
+        empresaId: empresaId || "",
         email,
+        // ⚠️ Evite salvar senha em metadata de forma permanente.
         senha,
         nome: responsavel,
         empresa,
         telefone,
         ramo,
+        promoCode: promoCode || "",
       },
     });
 
-    // 2) Checkout Session (assinatura)
+    // 2) Se veio um promoCode, tenta localizar para aplicar na sessão
+    let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined;
+    const code = (promoCode || "").trim();
+
+    if (code) {
+      try {
+        const found = await stripe.promotionCodes.list({
+          code,
+          active: true,
+          limit: 1,
+        });
+        const pc = found.data?.[0];
+        if (pc?.id) {
+          discounts = [{ promotion_code: pc.id }];
+        }
+      } catch (e) {
+        // não bloqueia o checkout se o código for inválido
+        console.warn("Falha ao localizar promotion code:", e);
+      }
+    }
+
+    // 3) Cria a Checkout Session (assinatura)
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
       mode: "subscription",
-      line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
+      payment_method_types: ["card"],
+      line_items: [{ price: priceId, quantity: 1 }],
       customer: customer.id,
-      // Ajuda o webhook a ter o empresaId na própria subscription
+
+      // Permite inserir códigos no Checkout; aplica o encontrado acima (se houver)
+      allow_promotion_codes: true,
+      discounts,
+
+      // Metadados úteis também na assinatura
       subscription_data: {
         metadata: {
           empresaId: empresaId || "",
           email,
+          promoCode: code || "",
         },
       },
+
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/sucesso?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/cancelado`,
     });
@@ -61,6 +112,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error("Erro ao criar checkout session:", error);
-    return NextResponse.json({ error: "Erro ao criar checkout." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro ao criar checkout." },
+      { status: 500 }
+    );
   }
 }
