@@ -1,5 +1,30 @@
 // app/api/create-checkout-session/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const DEBUG = process.env.DEBUG_STRIPE === "1";
+
+function debugLog(label: string, payload: any) {
+  if (!DEBUG) return;
+  try {
+    const safe = JSON.parse(
+      JSON.stringify(payload, (_k, v) =>
+        typeof v === "string" && v.length > 500 ? v.slice(0, 500) + "…[trunc]" : v
+      )
+    );
+    console.log(`[checkout][${label}]`, safe);
+  } catch {
+    console.log(`[checkout][${label}]`, payload);
+  }
+}
+
+function maskPhone(t?: string) {
+  if (!t) return "";
+  return t.replace(/\d(?=\d{2})/g, "•");
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -9,9 +34,9 @@ export async function POST(req: NextRequest) {
     telefone,
     responsavel,
     email,
-    senha,
+    senha,        // ⚠️ não logar/salvar senha aqui em produção
     empresaId,
-    promoCode, // opcional
+    promoCode,
   } = body as {
     empresa: string;
     ramo: string;
@@ -24,34 +49,38 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    const Stripe = (await import("stripe")).default;
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     const priceId = process.env.STRIPE_PRICE_ID;
-    const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || "").replace(/\/$/, "");
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
     if (!stripeKey) {
-      console.error("STRIPE_SECRET_KEY não definida.");
-      return NextResponse.json({ error: "Configuração inválida do Stripe." }, { status: 500 });
+      return NextResponse.json({ error: "Configuração do Stripe ausente (STRIPE_SECRET_KEY)." }, { status: 500 });
     }
     if (!priceId) {
-      console.error("STRIPE_PRICE_ID não definida.");
-      return NextResponse.json({ error: "Preço do plano não configurado." }, { status: 500 });
+      return NextResponse.json({ error: "Preço do plano não configurado (STRIPE_PRICE_ID)." }, { status: 500 });
     }
-    if (!baseUrl) {
-      console.error("NEXT_PUBLIC_BASE_URL não definida.");
-      return NextResponse.json({ error: "URL pública não configurada." }, { status: 500 });
+    if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
+      return NextResponse.json({ error: "NEXT_PUBLIC_BASE_URL inválida (precisa começar com http/https)." }, { status: 500 });
     }
 
-    const stripe = new Stripe(stripeKey /*, { apiVersion: '2024-06-20' } */);
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-06-30.basil" });
 
-    // 1) Cria o Customer (metadados úteis pro webhook/admin)
+    debugLog("input", {
+      empresa,
+      ramo,
+      telefone: maskPhone(telefone),
+      responsavel,
+      email,
+      empresaId: empresaId || null,
+      promoCode: (promoCode || "").trim() || null,
+    });
+
+    // 1) Customer com metadados úteis (evite armazenar senha aqui em produção)
     const customer = await stripe.customers.create({
       email,
       metadata: {
         empresaId: empresaId || "",
         email,
-        // ⚠️ Evite guardar senha em metadata em produção; mantenho aqui porque já existia no seu fluxo.
-        senha,
         nome: responsavel,
         empresa,
         telefone,
@@ -59,42 +88,42 @@ export async function POST(req: NextRequest) {
         promoCode: promoCode || "",
       },
     });
+    debugLog("customer.created", { id: customer.id });
 
-    // 2) Se veio um promoCode, tentamos localizá-lo.
-    //    Se acharmos, usaremos `discounts`; caso contrário, deixamos `allow_promotion_codes: true`
-    //    para o usuário digitar manualmente no Checkout.
+    // 2) (Opcional) procurar e aplicar promotion code
+    let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined;
     const code = (promoCode || "").trim();
-    let discounts: Array<{ promotion_code: string }> | undefined = undefined;
-    let allowPromotionCodes = true; // padrão: permitir inserir código no Checkout
-
     if (code) {
       try {
-        const found = await stripe.promotionCodes.list({
-          code,
-          active: true,
-          limit: 1,
-        });
+        const found = await stripe.promotionCodes.list({ code, active: true, limit: 1 });
         const pc = found.data?.[0];
         if (pc?.id) {
           discounts = [{ promotion_code: pc.id }];
-          allowPromotionCodes = false; // ⚠️ NÃO envie ambos: ou discounts ou allow_promotion_codes
+          debugLog("promotion_code.found", { code, id: pc.id, coupon: pc.coupon?.id });
+        } else {
+          debugLog("promotion_code.not_found", { code });
         }
-      } catch (e) {
-        console.warn("[create-checkout-session] Falha ao localizar promotion code:", e);
-        // segue com allowPromotionCodes = true (usuário poderá digitar manualmente)
+      } catch (e: any) {
+        debugLog("promotion_code.error", {
+          message: e?.message,
+          type: e?.type,
+          code: e?.code,
+          statusCode: e?.statusCode,
+          requestId: e?.requestId,
+        });
       }
     }
 
-    // 3) Cria a Checkout Session (assinatura)
-    const sessionPayload: any = {
+    // 3) Parâmetros tipados da Checkout Session
+    const params: Stripe.Checkout.SessionCreateParams = {
       mode: "subscription",
-      payment_method_types: ["card"],
+      // payment_method_types é opcional; Stripe escolhe automaticamente. Descomente se quiser forçar cartão:
+      // payment_method_types: ["card"],
       line_items: [{ price: priceId, quantity: 1 }],
       customer: customer.id,
 
-      // Use APENAS UM dos dois:
-      ...(allowPromotionCodes ? { allow_promotion_codes: true } : {}),
-      ...(discounts ? { discounts } : {}),
+      // Use EITHER discounts OR allow_promotion_codes
+      ...(discounts ? { discounts } : { allow_promotion_codes: true }),
 
       subscription_data: {
         metadata: {
@@ -108,13 +137,28 @@ export async function POST(req: NextRequest) {
       cancel_url: `${baseUrl}/cancelado`,
     };
 
-    const session = await stripe.checkout.sessions.create(sessionPayload);
+    debugLog("session.create.params", params);
 
+    const session = await stripe.checkout.sessions.create(params);
+
+    debugLog("session.created", { id: session.id, url: session.url });
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
-    // Tente expor mensagem do Stripe para facilitar debug
-    const msg = error?.raw?.message || error?.message || "Erro ao criar checkout.";
-    console.error("Erro ao criar checkout session:", msg, error);
-    return NextResponse.json({ error: "Erro ao criar checkout." }, { status: 500 });
+    const clean = {
+      message: error?.message,
+      type: error?.type,
+      code: error?.code,
+      statusCode: error?.statusCode,
+      requestId: error?.requestId,
+      rawType: error?.rawType,
+      rawMessage: error?.raw?.message,
+      rawCode: error?.raw?.code,
+      param: error?.param ?? error?.raw?.param,
+    };
+    console.error("[checkout][error]", clean);
+    return NextResponse.json(
+      { error: "Erro ao criar checkout.", ...(DEBUG ? { debug: clean } : {}) },
+      { status: 500 }
+    );
   }
 }
