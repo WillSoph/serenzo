@@ -33,7 +33,6 @@ const opcoesRamo = [
   "Outros",
 ];
 
-// 🔁 rota por tipo de usuário (aceita sinônimos)
 const ROLE_TO_ROUTE: Record<string, string> = {
   admin: "/admin",
   rh: "/rh",
@@ -51,13 +50,16 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const [responsavel, setResponsavel] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [erro, setErro] = useState("");
+
+  // erros separados
+  const [emailError, setEmailError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  // 👇 NOVO: código promocional (opcional, só no cadastro)
+  // promo (opcional)
   const [promoCode, setPromoCode] = useState("");
 
-  // "Esqueci a senha"
+  // reset de senha
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -68,67 +70,102 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const { login } = useAuth();
 
-  const formPreenchido = isLogin
-    ? email && senha
-    : empresa && ramo && telefone && responsavel && email && senha;
-
   useEffect(() => {
-    const { style } = document.body;
-    const prev = style.overflow;
-    style.overflow = "hidden";
-    return () => {
-      style.overflow = prev;
-    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
   }, []);
-
-  // checagem de e-mail no cadastro
-  useEffect(() => {
-    const verificarEmail = async () => {
-      if (!email || isLogin) return;
-      try {
-        const res = await fetch("/api/check-email", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        const data = await res.json();
-        setErro(data.exists ? "Este e-mail já está cadastrado. Faça login." : "");
-      } catch {
-        setErro("Erro ao verificar e-mail");
-      }
-    };
-    verificarEmail();
-  }, [email, isLogin]);
 
   // fechar ao clicar fora
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) onClose();
+    const handle = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
   }, [onClose]);
+
+  // verifica e-mail no backend
+  const verifyEmailAvailability = async (): Promise<boolean> => {
+    if (isLogin) return true; // só no cadastro
+    const val = email.trim();
+    if (!val) {
+      setEmailError("Informe um e-mail.");
+      return false;
+    }
+    try {
+      const res = await fetch("/api/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: val }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setEmailError(data?.error || "Erro ao verificar e-mail.");
+        return false;
+      }
+      if (data.reason === "invalid-email") {
+        setEmailError("E-mail inválido.");
+        return false;
+      }
+      if (data.exists === true) {
+        setEmailError("Este e-mail já está cadastrado. Faça login.");
+        return false; // 🔒 BLOQUEIA o checkout
+      }
+      setEmailError("");
+      return true;
+    } catch {
+      setEmailError("Erro ao verificar e-mail.");
+      return false;
+    }
+  };
+
+  // roda apenas no blur (para não spammar a API enquanto digita)
+  const checkEmailOnBlur = async () => {
+    if (isLogin) return;
+    if (!email.trim()) { setEmailError(""); return; }
+    await verifyEmailAvailability();
+  };
 
   const iniciarCheckout = async () => {
     setCarregando(true);
-    setErro("");
+    setSubmitError("");
     try {
+      // 🔁 validação FINAL antes do Stripe: se e-mail existir, não continua
+      if (!isLogin) {
+        const ok = await verifyEmailAvailability();
+        if (!ok) { setCarregando(false); return; } // 🔒 sem redirecionamento
+      }
+
+      const payload = {
+        empresa,
+        ramo,
+        telefone,
+        responsavel,
+        email: email.trim(),
+        senha,
+        promoCode: promoCode.trim(),
+      };
+
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 👇 envia o promoCode para o backend (aplicar automaticamente no Checkout)
-        body: JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha, promoCode }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (data?.url) {
+
+      if (res.ok && data?.url) {
         localStorage.setItem(
           "dadosCadastroEmpresa",
-          JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha })
+          JSON.stringify({ empresa, ramo, telefone, responsavel, email: payload.email, senha })
         );
         window.location.href = data.url;
-      } else throw new Error("Erro ao iniciar o checkout.");
+      } else {
+        throw new Error(data?.error || "Erro ao iniciar o checkout.");
+      }
     } catch (err: any) {
-      setErro(err.message || "Erro inesperado");
+      setSubmitError(err.message || "Erro inesperado");
     } finally {
       setCarregando(false);
     }
@@ -136,38 +173,29 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
 
   const handleLogin = async () => {
     setCarregando(true);
-    setErro("");
+    setSubmitError("");
     try {
       const roleRaw = await login(email, senha);
-
-      // normaliza o que quer que venha
       const roleKey =
         typeof roleRaw === "string"
           ? roleRaw.trim().toLowerCase()
           : typeof roleRaw === "object" && roleRaw && "role" in roleRaw
           ? String((roleRaw as any).role ?? "").trim().toLowerCase()
           : "";
-
-      // qualquer coisa que não for admin/rh => colaborador
-      const destino =
-        roleKey === "admin" ? "/admin" :
-        roleKey === "rh"    ? "/rh"    :
-                              "/colaborador";
-
-      // navega e fecha o modal
+      const destino = roleKey === "admin" ? "/admin" : roleKey === "rh" ? "/rh" : "/colaborador";
       router.replace(destino);
       onClose();
     } catch (e: any) {
       const code = e?.code || "";
       const friendly =
-        code === "auth/invalid-email"        ? "E-mail inválido." :
-        code === "auth/user-not-found"       ? "Usuário não encontrado." :
+        code === "auth/invalid-email"      ? "E-mail inválido." :
+        code === "auth/user-not-found"     ? "Usuário não encontrado." :
         code === "auth/wrong-password" ||
-        code === "auth/invalid-credential"   ? "E-mail ou senha incorretos." :
-        code === "auth/too-many-requests"    ? "Muitas tentativas. Tente novamente em alguns minutos." :
-        code === "auth/user-disabled"        ? "Esta conta está desativada." :
-                                                e?.message || "Erro ao fazer login.";
-      setErro(friendly);
+        code === "auth/invalid-credential" ? "E-mail ou senha incorretos." :
+        code === "auth/too-many-requests"  ? "Muitas tentativas. Tente novamente em alguns minutos." :
+        code === "auth/user-disabled"      ? "Esta conta está desativada." :
+                                             e?.message || "Erro ao fazer login.";
+      setSubmitError(friendly);
     } finally {
       setCarregando(false);
     }
@@ -187,22 +215,24 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     try {
       if (!resetEmail) throw new Error("Informe seu e-mail para recuperar a senha.");
       await sendPasswordResetEmail(auth, resetEmail.trim());
-      setResetMsg(
-        "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha nos próximos minutos."
-      );
+      setResetMsg("Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha nos próximos minutos.");
     } catch (e: any) {
       const code = e?.code || "";
       const msg =
-        code === "auth/invalid-email"
-          ? "E-mail inválido."
-          : code === "auth/user-not-found"
-          ? "Usuário não encontrado para este e-mail."
-          : "Não foi possível enviar o e-mail de redefinição. Tente novamente.";
+        code === "auth/invalid-email" ? "E-mail inválido." :
+        code === "auth/user-not-found" ? "Usuário não encontrado para este e-mail." :
+        "Não foi possível enviar o e-mail de redefinição. Tente novamente.";
       setResetErr(msg);
     } finally {
       setResetLoading(false);
     }
   };
+
+  const canSubmit = carregando
+    ? false
+    : isLogin
+    ? !!email && !!senha
+    : !!empresa && !!ramo && !!telefone && !!responsavel && !!email && !!senha && !emailError;
 
   return (
     <>
@@ -220,7 +250,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
           <button
             onClick={onClose}
             aria-label="Fechar"
-            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-xl font-bold"
+            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer"
           >
             ✕
           </button>
@@ -235,18 +265,12 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 <Input
                   placeholder="Nome da Empresa"
                   value={empresa}
-                  onChange={(e) => {
-                    setEmpresa(e.target.value);
-                    setErro("");
-                  }}
+                  onChange={(e) => { setEmpresa(e.target.value); setSubmitError(""); }}
                   fullWidth
                 />
                 <Select
                   value={ramo}
-                  onChange={(e) => {
-                    setRamo(e.target.value);
-                    setErro("");
-                  }}
+                  onChange={(e) => { setRamo(e.target.value); setSubmitError(""); }}
                   options={opcoesRamo.map((r) => ({ label: r, value: r }))}
                   fullWidth
                   label="Ramo de Atuação"
@@ -254,23 +278,17 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 <Input
                   placeholder="Telefone"
                   value={telefone}
-                  onChange={(e) => {
-                    setTelefone(e.target.value);
-                    setErro("");
-                  }}
+                  onChange={(e) => { setTelefone(e.target.value); setSubmitError(""); }}
                   fullWidth
                 />
                 <Input
                   placeholder="Seu Nome (Admin)"
                   value={responsavel}
-                  onChange={(e) => {
-                    setResponsavel(e.target.value);
-                    setErro("");
-                  }}
+                  onChange={(e) => { setResponsavel(e.target.value); setSubmitError(""); }}
                   fullWidth
                 />
 
-                {/* 👇 NOVO: Código promocional (opcional) */}
+                {/* Código promocional (opcional) */}
                 <Input
                   placeholder="Código promocional (opcional)"
                   value={promoCode}
@@ -290,10 +308,15 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  setErro("");
+                  setSubmitError("");
+                  if (!isLogin) setEmailError(""); // limpa enquanto digita (valida no blur)
                 }}
+                onBlur={checkEmailOnBlur}
                 fullWidth
               />
+              {!isLogin && emailError && (
+                <div className="text-red-600 text-sm -mt-1">{emailError}</div>
+              )}
 
               {!isLogin && (
                 <p className="text-xs text-slate-500 mb-2">
@@ -305,10 +328,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 type="password"
                 placeholder="Senha"
                 value={senha}
-                onChange={(e) => {
-                  setSenha(e.target.value);
-                  setErro("");
-                }}
+                onChange={(e) => { setSenha(e.target.value); setSubmitError(""); }}
                 fullWidth
               />
 
@@ -317,33 +337,26 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                   <button
                     type="button"
                     onClick={openReset}
-                    className="text-sm text-emerald-700 hover:text-emerald-800 underline"
+                    className="text-sm text-emerald-700 hover:text-emerald-800 underline cursor-pointer"
                   >
                     Esqueci minha senha
                   </button>
                 </div>
               )}
 
-              {/* botão */}
               <Button
                 loading={carregando}
-                disabled={
-                  carregando ||
-                  !(isLogin
-                    ? !!email && !!senha
-                    : !!empresa && !!ramo && !!telefone && !!responsavel && !!email && !!senha) ||
-                  (!isLogin && !!erro) // evita prosseguir se e-mail já existir
-                }
+                disabled={!canSubmit}
                 onClick={isLogin ? handleLogin : iniciarCheckout}
                 fullWidth
+                className="cursor-pointer"
               >
                 {isLogin ? "Entrar" : "Cadastrar e Pagar"}
               </Button>
 
-              {/* 💥 mensagem de erro abaixo do botão (login) */}
-              {isLogin && erro && (
+              {submitError && (
                 <div className="text-red-600 text-sm mt-2" role="alert">
-                  {erro}
+                  {submitError}
                 </div>
               )}
 
@@ -352,9 +365,10 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={() => {
                     setIsLogin(!isLogin);
-                    setErro("");
+                    setSubmitError("");
+                    setEmailError("");
                   }}
-                  className="text-emerald-700 underline hover:text-emerald-800 transition-colors"
+                  className="text-emerald-700 underline hover:text-emerald-800 transition-colors cursor-pointer"
                 >
                   {isLogin ? "Criar conta" : "Entrar"}
                 </button>
@@ -362,7 +376,6 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {/* Mini-modal de redefinição de senha */}
           {resetOpen && (
             <>
               <div className="absolute inset-0 rounded-2xl bg-white/70 backdrop-blur-sm" />
@@ -386,10 +399,10 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                   </div>
 
                   <div className="mt-4 flex items-center justify-end gap-2">
-                    <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetLoading}>
+                    <Button variant="ghost" onClick={() => setResetOpen(false)} disabled={resetLoading} className="cursor-pointer">
                       Cancelar
                     </Button>
-                    <Button onClick={handleResetPassword} loading={resetLoading} disabled={!resetEmail}>
+                    <Button onClick={handleResetPassword} loading={resetLoading} disabled={!resetEmail} className="cursor-pointer">
                       Enviar link
                     </Button>
                   </div>
