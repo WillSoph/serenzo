@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/context/useAuth";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/Button";
@@ -33,6 +34,7 @@ const opcoesRamo = [
   "Outros",
 ];
 
+// 🔁 rota por tipo de usuário (aceita sinônimos)
 const ROLE_TO_ROUTE: Record<string, string> = {
   admin: "/admin",
   rh: "/rh",
@@ -51,15 +53,16 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
-  // erros separados
-  const [emailError, setEmailError] = useState("");
-  const [submitError, setSubmitError] = useState("");
+  // Erros separados
+  const [emailError, setEmailError] = useState("");     // aparece abaixo do input de e-mail (cadastro)
+  const [submitError, setSubmitError] = useState("");   // aparece abaixo do botão
+
   const [carregando, setCarregando] = useState(false);
 
-  // promo (opcional)
+  // Código promocional (opcional, só no cadastro)
   const [promoCode, setPromoCode] = useState("");
 
-  // reset de senha
+  // "Esqueci a senha"
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
@@ -70,29 +73,27 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const { login } = useAuth();
 
+  // Evita scroll da página quando o modal está aberto
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    const { style } = document.body;
+    const prev = style.overflow;
+    style.overflow = "hidden";
+    return () => {
+      style.overflow = prev;
+    };
   }, []);
 
-  // fechar ao clicar fora
+  // Fecha no ESC
   useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
     };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // verifica e-mail no backend
-  const verifyEmailAvailability = async (): Promise<boolean> => {
-    if (isLogin) return true; // só no cadastro
-    const val = email.trim();
-    if (!val) {
-      setEmailError("Informe um e-mail.");
-      return false;
-    }
+  // 🔎 Checar e-mail (apenas no blur, e apenas no cadastro)
+  const checkEmail = async (val: string) => {
     try {
       const res = await fetch("/api/check-email", {
         method: "POST",
@@ -105,14 +106,16 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
         setEmailError(data?.error || "Erro ao verificar e-mail.");
         return false;
       }
+
       if (data.reason === "invalid-email") {
         setEmailError("E-mail inválido.");
         return false;
       }
       if (data.exists === true) {
         setEmailError("Este e-mail já está cadastrado. Faça login.");
-        return false; // 🔒 BLOQUEIA o checkout
+        return false;
       }
+
       setEmailError("");
       return true;
     } catch {
@@ -121,44 +124,45 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  // roda apenas no blur (para não spammar a API enquanto digita)
   const checkEmailOnBlur = async () => {
     if (isLogin) return;
-    if (!email.trim()) { setEmailError(""); return; }
-    await verifyEmailAvailability();
+    const val = email.trim();
+    if (!val) return;
+    await checkEmail(val);
+  };
+
+  // Garantia extra: revalida antes do checkout
+  const revalidateEmailBeforeCheckout = async () => {
+    if (isLogin) return true;
+    const val = email.trim();
+    if (!val) {
+      setEmailError("Informe um e-mail válido.");
+      return false;
+    }
+    return await checkEmail(val);
   };
 
   const iniciarCheckout = async () => {
     setCarregando(true);
     setSubmitError("");
     try {
-      // 🔁 validação FINAL antes do Stripe: se e-mail existir, não continua
-      if (!isLogin) {
-        const ok = await verifyEmailAvailability();
-        if (!ok) { setCarregando(false); return; } // 🔒 sem redirecionamento
+      // revalida e-mail
+      const ok = await revalidateEmailBeforeCheckout();
+      if (!ok) {
+        setCarregando(false);
+        return;
       }
-
-      const payload = {
-        empresa,
-        ramo,
-        telefone,
-        responsavel,
-        email: email.trim(),
-        senha,
-        promoCode: promoCode.trim(),
-      };
 
       const res = await fetch("/api/create-checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha, promoCode }),
       });
       const data = await res.json();
-
       if (res.ok && data?.url) {
         localStorage.setItem(
           "dadosCadastroEmpresa",
-          JSON.stringify({ empresa, ramo, telefone, responsavel, email: payload.email, senha })
+          JSON.stringify({ empresa, ramo, telefone, responsavel, email, senha })
         );
         window.location.href = data.url;
       } else {
@@ -182,19 +186,24 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
           : typeof roleRaw === "object" && roleRaw && "role" in roleRaw
           ? String((roleRaw as any).role ?? "").trim().toLowerCase()
           : "";
-      const destino = roleKey === "admin" ? "/admin" : roleKey === "rh" ? "/rh" : "/colaborador";
+
+      const destino =
+        roleKey === "admin" ? "/admin" :
+        roleKey === "rh"    ? "/rh"    :
+                              "/colaborador";
+
       router.replace(destino);
       onClose();
     } catch (e: any) {
       const code = e?.code || "";
       const friendly =
-        code === "auth/invalid-email"      ? "E-mail inválido." :
-        code === "auth/user-not-found"     ? "Usuário não encontrado." :
+        code === "auth/invalid-email"        ? "E-mail inválido." :
+        code === "auth/user-not-found"       ? "Usuário não encontrado." :
         code === "auth/wrong-password" ||
-        code === "auth/invalid-credential" ? "E-mail ou senha incorretos." :
-        code === "auth/too-many-requests"  ? "Muitas tentativas. Tente novamente em alguns minutos." :
-        code === "auth/user-disabled"      ? "Esta conta está desativada." :
-                                             e?.message || "Erro ao fazer login.";
+        code === "auth/invalid-credential"   ? "E-mail ou senha incorretos." :
+        code === "auth/too-many-requests"    ? "Muitas tentativas. Tente novamente em alguns minutos." :
+        code === "auth/user-disabled"        ? "Esta conta está desativada." :
+                                                e?.message || "Erro ao fazer login.";
       setSubmitError(friendly);
     } finally {
       setCarregando(false);
@@ -215,37 +224,57 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
     try {
       if (!resetEmail) throw new Error("Informe seu e-mail para recuperar a senha.");
       await sendPasswordResetEmail(auth, resetEmail.trim());
-      setResetMsg("Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha nos próximos minutos.");
+      setResetMsg(
+        "Se este e-mail estiver cadastrado, você receberá um link para redefinir sua senha nos próximos minutos."
+      );
     } catch (e: any) {
       const code = e?.code || "";
       const msg =
-        code === "auth/invalid-email" ? "E-mail inválido." :
-        code === "auth/user-not-found" ? "Usuário não encontrado para este e-mail." :
-        "Não foi possível enviar o e-mail de redefinição. Tente novamente.";
+        code === "auth/invalid-email" ? "E-mail inválido."
+        : code === "auth/user-not-found" ? "Usuário não encontrado para este e-mail."
+        : "Não foi possível enviar o e-mail de redefinição. Tente novamente.";
       setResetErr(msg);
     } finally {
       setResetLoading(false);
     }
   };
 
-  const canSubmit = carregando
-    ? false
-    : isLogin
-    ? !!email && !!senha
-    : !!empresa && !!ramo && !!telefone && !!responsavel && !!email && !!senha && !emailError;
+  const canSubmit =
+    carregando
+      ? false
+      : isLogin
+      ? !!email && !!senha
+      : !!empresa && !!ramo && !!telefone && !!responsavel && !!email && !!senha && !emailError;
 
-  return (
+  // ---- Portal-safe: só renderiza no cliente
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  // Backdrop click fecha (mas clique dentro do painel não)
+  const onBackdropClick: React.MouseEventHandler<HTMLDivElement> = (e) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  return createPortal(
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-[2px]" aria-hidden="true" />
+      <div
+        className="fixed inset-0 z-[1000] bg-slate-900/60 backdrop-blur-[2px]"
+        onClick={onBackdropClick}
+        aria-hidden="true"
+      />
 
-      {/* Painel */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Contêiner centralizado e independente da rolagem */}
+      <div
+        className="fixed inset-0 z-[1001] flex items-center justify-center p-4"
+        onClick={onBackdropClick}
+      >
         <div
           ref={modalRef}
           role="dialog"
           aria-modal="true"
-          className="relative w-full max-w-md rounded-2xl bg-white text-slate-900 shadow-xl ring-1 ring-black/5"
+          className="relative w-full max-w-md max-h-[90vh] overflow-auto rounded-2xl bg-white text-slate-900 shadow-xl ring-1 ring-black/5"
         >
           <button
             onClick={onClose}
@@ -262,39 +291,20 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
 
             {!isLogin && (
               <div className="flex flex-col gap-2">
-                <Input
-                  placeholder="Nome da Empresa"
-                  value={empresa}
-                  onChange={(e) => { setEmpresa(e.target.value); setSubmitError(""); }}
-                  fullWidth
-                />
-                <Select
-                  value={ramo}
+                <Input placeholder="Nome da Empresa" value={empresa}
+                  onChange={(e) => { setEmpresa(e.target.value); setSubmitError(""); }} fullWidth />
+                <Select value={ramo}
                   onChange={(e) => { setRamo(e.target.value); setSubmitError(""); }}
                   options={opcoesRamo.map((r) => ({ label: r, value: r }))}
-                  fullWidth
-                  label="Ramo de Atuação"
-                />
-                <Input
-                  placeholder="Telefone"
-                  value={telefone}
-                  onChange={(e) => { setTelefone(e.target.value); setSubmitError(""); }}
-                  fullWidth
-                />
-                <Input
-                  placeholder="Seu Nome (Admin)"
-                  value={responsavel}
-                  onChange={(e) => { setResponsavel(e.target.value); setSubmitError(""); }}
-                  fullWidth
-                />
+                  fullWidth label="Ramo de Atuação" />
+                <Input placeholder="Telefone" value={telefone}
+                  onChange={(e) => { setTelefone(e.target.value); setSubmitError(""); }} fullWidth />
+                <Input placeholder="Seu Nome (Admin)" value={responsavel}
+                  onChange={(e) => { setResponsavel(e.target.value); setSubmitError(""); }} fullWidth />
 
                 {/* Código promocional (opcional) */}
-                <Input
-                  placeholder="Código promocional (opcional)"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value.trim())}
-                  fullWidth
-                />
+                <Input placeholder="Código promocional (opcional)" value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value.trim())} fullWidth />
                 <p className="text-xs text-slate-500 -mt-1">
                   Se você recebeu um código (ex.: SERENZO1M), informe aqui. Também é possível aplicar direto no Checkout.
                 </p>
@@ -309,7 +319,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => {
                   setEmail(e.target.value);
                   setSubmitError("");
-                  if (!isLogin) setEmailError(""); // limpa enquanto digita (valida no blur)
+                  if (!isLogin) setEmailError("");
                 }}
                 onBlur={checkEmailOnBlur}
                 fullWidth
@@ -324,13 +334,8 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 </p>
               )}
 
-              <Input
-                type="password"
-                placeholder="Senha"
-                value={senha}
-                onChange={(e) => { setSenha(e.target.value); setSubmitError(""); }}
-                fullWidth
-              />
+              <Input type="password" placeholder="Senha" value={senha}
+                onChange={(e) => { setSenha(e.target.value); setSubmitError(""); }} fullWidth />
 
               {isLogin && (
                 <div className="flex justify-end">
@@ -376,6 +381,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Mini-modal de redefinição de senha */}
           {resetOpen && (
             <>
               <div className="absolute inset-0 rounded-2xl bg-white/70 backdrop-blur-sm" />
@@ -387,13 +393,8 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                   </p>
 
                   <div className="mt-3">
-                    <Input
-                      type="email"
-                      placeholder="Seu e-mail"
-                      value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
-                      fullWidth
-                    />
+                    <Input type="email" placeholder="Seu e-mail" value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)} fullWidth />
                     {resetErr && <div className="text-red-600 text-sm mt-2">{resetErr}</div>}
                     {resetMsg && <div className="text-emerald-700 text-sm mt-2">{resetMsg}</div>}
                   </div>
@@ -412,6 +413,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
