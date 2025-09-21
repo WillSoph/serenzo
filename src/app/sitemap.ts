@@ -1,21 +1,35 @@
 // app/sitemap.ts
 import type { MetadataRoute } from "next";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-// Liste aqui SOMENTE rotas públicas (sem login).
-const PUBLIC_ROUTES = [
-  "/",                         // landing page
-  "/docs/politica-conduta",    // se forem públicas
-  "/docs/faq",
-];
-
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
-  return PUBLIC_ROUTES.map((path, i) => ({
-    url: `${BASE_URL}${path}`,
+  const base = process.env.NEXT_PUBLIC_BASE_URL!;
+  const now = new Date().toISOString();
+
+  const staticRoutes = [
+    "",
+    "/como-funciona",
+    "/faq",
+    "/para-empresas",
+    "/sobre",
+    "/contato",
+    "/blog",
+  ].map((p) => ({
+    url: `${base}${p}`,
     lastModified: now,
-    changeFrequency: i === 0 ? "weekly" : "monthly",
-    priority: i === 0 ? 1 : 0.6,
+    changeFrequency: "weekly" as const,
+    priority: p === "" ? 1 : 0.7,
   }));
+
+  // se tiver posts dinâmicos, adicione aqui
+  const posts = [
+    "/blog/escuta-ativa-no-ambiente-de-trabalho",
+    "/blog/sinais-de-risco-emocional",
+  ].map((p) => ({
+    url: `${base}${p}`,
+    lastModified: now,
+    changeFrequency: "monthly" as const,
+    priority: 0.6,
+  }));
+
+  return [...staticRoutes, ...posts];
 }
