@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useState } from 'react';
 import { AuthModal } from '../AuthModal/AuthModal';
 import { Menu, X } from 'lucide-react';
