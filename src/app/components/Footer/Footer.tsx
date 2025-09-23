@@ -32,11 +32,11 @@ export function Footer() {
         <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* Links legais */}
           <nav aria-label="Links legais" className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
-            <Link href="/privacidade" className="hover:text-white">Política de Privacidade</Link>
+            <Link href="/politica-de-privacidade" className="hover:text-white">Política de Privacidade</Link>
             <span className="text-gray-500">•</span>
-            <Link href="/termos" className="hover:text-white">Termos de Uso</Link>
+            <Link href="/termos-de-uso" className="hover:text-white">Termos de Uso</Link>
             <span className="text-gray-500">•</span>
-            <Link href="/cookies" className="hover:text-white">Política de Cookies</Link>
+            <Link href="/politica-de-cookies" className="hover:text-white">Política de Cookies</Link>
           </nav>
 
           {/* Redes sociais */}

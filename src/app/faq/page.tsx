@@ -1,5 +1,8 @@
 // app/faq/page.tsx
+import { ArrowBigLeft } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Footer } from "../components/Footer/Footer";
 
 const title = "FAQ | Serenzo";
 const description = "Perguntas frequentes sobre anonimato, privacidade, prazos de resposta e integrações da Serenzo.";
@@ -22,7 +25,9 @@ export default function FaqPage() {
   };
 
   return (
+    <>
     <main className="max-w-3xl mx-auto px-4 py-16">
+      <Link href="/" className="hover:text-emerald-900 flex mb-6"><ArrowBigLeft />  Voltar para Home</Link>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Perguntas frequentes</h1>
 
@@ -45,5 +50,7 @@ export default function FaqPage() {
         </section>
       </div>
     </main>
+    <Footer/>
+    </>
   );
 }

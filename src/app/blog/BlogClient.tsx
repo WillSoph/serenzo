@@ -1,8 +1,10 @@
 // components/blog/BlogClient.tsx
 "use client";
 
+import { ArrowBigLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Footer } from "../components/Footer/Footer";
 
 // Conteúdo dummy — substitua por CMS/MDX quando quiser
 const posts = [
@@ -45,7 +47,9 @@ export default function BlogClient() {
   };
 
   return (
+    <>
     <main className="max-w-4xl mx-auto px-4 py-16">
+      <Link href="/" className="hover:text-emerald-900 flex mb-6"><ArrowBigLeft />  Voltar para Home</Link>
       <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Blog</h1>
       <p className="mt-2 text-slate-600">
         Artigos sobre bem-estar corporativo, liderança e produtividade.
@@ -101,5 +105,7 @@ export default function BlogClient() {
         })}
       </ul>
     </main>
+    <Footer/>
+    </>
   );
 }

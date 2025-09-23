@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s • Serenzo",
   },
   description:
-    "Serenzo é uma plataforma de escuta ativa com IA para bem-estar corporativo. Receba mensagens anônimas, priorize riscos emocionais e acompanhe tudo em um dashboard simples.",
+    "Serenzo é uma plataforma de escuta ativa com IA para bem-estar corporativo. Mensagens anônimas, priorização de riscos e dashboard por setor.",
   applicationName: "Serenzo",
   alternates: { canonical: "/" },
   category: "Business",
@@ -29,30 +29,39 @@ export const metadata: Metadata = {
     "mensagens anônimas",
     "análise com IA",
     "RH",
-    "alertas em tempo real",
     "dashboard de RH",
     "clima organizacional",
-    "Serenzo"
+    "Serenzo",
   ],
   robots: {
     index: true,
     follow: true,
-    googleBot: { index: true, follow: true, "max-snippet": -1 },
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
   },
   viewport: { width: "device-width", initialScale: 1 },
   themeColor: "#10b981",
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/apple-touch-icon.png", // opcional
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.ico", type: "image/x-icon" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
+  manifest: "/site.webmanifest",
   openGraph: {
     type: "website",
     url: SITE_URL,
     siteName: "Serenzo",
     title: "Serenzo — Bem-estar corporativo com IA",
     description:
-      "Escuta ativa, análise com IA e painel para RH. Dê voz aos colaboradores e priorize o que precisa de atenção.",
+      "Escuta ativa, IA que prioriza sinais de risco e painel para RH (dados agregados, LGPD).",
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Serenzo — plataforma de bem-estar corporativo" }],
     locale: "pt_BR",
   },
@@ -60,9 +69,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Serenzo — Bem-estar corporativo com IA",
     description:
-      "Escuta ativa, análise com IA e painel para RH. Dê voz aos colaboradores e priorize o que precisa de atenção.",
+      "Escuta ativa, IA que prioriza riscos e insights por setor (dados agregados, LGPD).",
     images: [OG_IMAGE],
-    creator: "@serenzo_app", // opcional; remova se não tiver
+    // creator: "@serenzo_app",
   },
 };
 
