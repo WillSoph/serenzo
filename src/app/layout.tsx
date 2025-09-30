@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { AuthProvider } from "@/context/useAuth";
 import CookieConsent from "./components/CookieConsent/CookieConsent";
+import GaAdsTracking from "./ga-ads-tracking";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -75,6 +76,8 @@ export const metadata: Metadata = {
   },
 };
 
+const GA_ADS_ID = process.env.NEXT_PUBLIC_GA_ADS_ID || "AW-17597320159";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // JSON-LD (Organization + SoftwareApplication)
   const orgLd = {
@@ -96,7 +99,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="pt-BR">
+      <head>
+        {/* gtag.js base */}
+        <Script
+          id="gtag-base"
+          strategy="afterInteractive"
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ADS_ID}`}
+        />
+        <Script id="gtag-config" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ADS_ID}');
+          `}
+        </Script>
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <GaAdsTracking />
         <AuthProvider>{children}<CookieConsent /></AuthProvider>
 
         {/* JSON-LD */}
