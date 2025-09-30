@@ -20,16 +20,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: p === "" ? 1 : 0.7,
   }));
 
-  // se tiver posts dinâmicos, adicione aqui
-  const posts = [
-    "/blog/escuta-ativa-no-ambiente-de-trabalho",
-    "/blog/sinais-de-risco-emocional",
-  ].map((p) => ({
-    url: `${base}${p}`,
-    lastModified: now,
-    changeFrequency: "monthly" as const,
-    priority: 0.6,
-  }));
-
-  return [...staticRoutes, ...posts];
+  return [...staticRoutes];
 }
