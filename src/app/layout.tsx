@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/useAuth";
 import CookieConsent from "./components/CookieConsent/CookieConsent";
 import GaAdsTracking from "./ga-ads-tracking";
+import { Suspense } from "react";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -116,7 +117,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Script>
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <GaAdsTracking />
+        <Suspense fallback={null}>
+          <GaAdsTracking />
+        </Suspense>
         <AuthProvider>{children}<CookieConsent /></AuthProvider>
 
         {/* JSON-LD */}
