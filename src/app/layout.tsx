@@ -101,6 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <head>
+        <meta name="color-scheme" content="light" />
         {/* gtag.js base */}
         <Script
           id="gtag-base"
