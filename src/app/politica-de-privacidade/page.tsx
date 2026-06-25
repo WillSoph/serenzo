@@ -5,9 +5,9 @@ import { Footer } from "../components/Footer/Footer";
 import { ArrowBigLeft } from "lucide-react";
 
 const base = process.env.NEXT_PUBLIC_BASE_URL || "";
-const title = "Política de Privacidade | Serenzo";
+const title = "Política de Privacidade | Previsiva";
 const description =
-  "Saiba como a Serenzo coleta, utiliza e protege dados pessoais, em conformidade com boas práticas de privacidade.";
+  "Saiba como a Previsiva coleta, utiliza e protege dados pessoais, em conformidade com boas práticas de privacidade.";
 
 export const metadata: Metadata = {
   title,
@@ -30,7 +30,7 @@ export default function PoliticaPrivacidadePage() {
     url: `${base}/politica-de-privacidade`,
     publisher: {
       "@type": "Organization",
-      name: "Serenzo",
+      name: "Previsiva",
       url: base,
       logo: {
         "@type": "ImageObject",
@@ -60,7 +60,7 @@ export default function PoliticaPrivacidadePage() {
 
         <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Política de Privacidade</h1>
         <p className="mt-3 text-slate-700">
-          A Serenzo respeita sua privacidade. Esta política descreve como coletamos, usamos, armazenamos e protegemos
+          A Previsiva respeita sua privacidade. Esta política descreve como coletamos, usamos, armazenamos e protegemos
           seus dados pessoais ao utilizar nossos sites e serviços.
         </p>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,34 +10,77 @@ interface ModalProps {
 export function Modal({ isOpen, title, onClose, children }: ModalProps) {
   if (!isOpen) return null;
 
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleEsc);
+
+    return () => {
+      window.removeEventListener('keydown', handleEsc);
+    };
+  }, [onClose]);
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+      onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-xl relative flex flex-col max-h-[85vh]"
+        onClick={(e) => e.stopPropagation()}
+        className="
+          relative
+          w-full
+          max-w-xl
+          max-h-[85vh]
+          overflow-hidden
+          rounded-2xl
+          bg-white
+          shadow-2xl
+          flex
+          flex-col
+        "
       >
-        {/* Header */}
-        <div className="px-6 pt-6 pb-2">
+        <div className="px-6 pt-6 pb-3 border-b border-slate-100">
           {title && (
-            <h2 id="modal-title" className="text-xl font-bold">
+            <h2
+              id="modal-title"
+              className="text-xl font-semibold text-slate-900"
+            >
               {title}
             </h2>
           )}
+
           <button
             onClick={onClose}
             aria-label="Fechar modal"
-            className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-xl cursor-pointer"
+            className="
+              absolute
+              right-4
+              top-4
+              flex
+              h-8
+              w-8
+              items-center
+              justify-center
+              rounded-lg
+              text-slate-500
+              transition
+              hover:bg-slate-100
+              hover:text-slate-900
+            "
           >
             ×
           </button>
         </div>
 
-        {/* Conteúdo rolável */}
-        <div className="px-6 pb-6 overflow-y-auto">
+        <div className="overflow-y-auto px-6 py-5">
           {children}
         </div>
       </div>

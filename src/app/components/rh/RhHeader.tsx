@@ -196,37 +196,56 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-emerald-100 shadow-sm flex items-center px-4 z-40 md:ml-64">
-      {onMenuClick && (
+  <>
+  <header className="fixed top-0 left-0 right-0 z-40 flex h-20 items-center border-b border-slate-200/70 bg-white/90 px-4 shadow-sm backdrop-blur-xl md:ml-72 md:px-8">
+    {onMenuClick && (
+      <button
+        onClick={onMenuClick}
+        className="mr-4 rounded-xl p-2 text-emerald-700 transition hover:bg-emerald-50 hover:text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 md:hidden"
+        aria-label="Abrir menu"
+      >
+        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    )}
+
+    <div>
+      <h1 className="text-xl font-bold text-slate-900">Caixa de Entrada</h1>
+      <p className="mt-0.5 text-sm text-slate-500">
+        Acompanhe e gerencie mensagens dos colaboradores com apoio da IA.
+      </p>
+    </div>
+
+    <div className="ml-auto flex items-center gap-3">
+      <button
+        className="relative rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-emerald-700"
+        aria-label="Notificações"
+      >
+        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-emerald-500" />
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m6 0a3 3 0 0 1-6 0"
+          />
+        </svg>
+      </button>
+
+      <div className="relative">
         <button
-          onClick={onMenuClick}
-          className="md:hidden mr-4 p-2 text-emerald-700 hover:text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 rounded-lg"
-          aria-label="Abrir menu"
+          ref={btnRef}
+          onClick={() => setMenuOpen((p) => !p)}
+          className="rounded-xl p-2.5 text-slate-500 transition hover:bg-slate-100 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label="Abrir configurações"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          <Settings className="h-5 w-5" />
         </button>
-      )}
 
-      <h1 className="text-lg font-semibold text-emerald-900">Painel</h1>
-
-      <div className="ml-auto flex items-center space-x-4 relative">
-        {/* Botão de Configurações */}
-        <div className="relative">
-          <button
-            ref={btnRef}
-            onClick={() => setMenuOpen((p) => !p)}
-            className="p-2 rounded-lg text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            aria-label="Abrir configurações"
-          >
-            <Settings className="w-6 h-6" />
-          </button>
-
-          {/* Dropdown */}
-          <div
+        <div
             ref={menuRef}
             className={`absolute right-0 mt-2 w-64 origin-top-right rounded-xl border shadow-lg z-50
             border-emerald-100 bg-white ring-1 ring-emerald-100/60
@@ -283,10 +302,24 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
               )}
             </div>
           </div>
+      </div>
+
+      <div className="hidden h-8 w-px bg-slate-200 md:block" />
+
+      <div className="hidden items-center gap-3 md:flex">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">
+          {user?.email?.[0]?.toUpperCase() || "U"}
         </div>
 
-        <div className="text-sm text-emerald-900">{user?.email}</div>
+        <div className="leading-tight">
+          <p className="text-sm font-semibold text-slate-800">Área RH</p>
+          <p className="max-w-[180px] truncate text-xs text-slate-500">
+            {user?.email}
+          </p>
+        </div>
       </div>
+    </div>
+    </header>
 
       {/* Modal de confirmação do cancelamento */}
       <Modal
@@ -377,6 +410,6 @@ export const RhHeader = ({ mensagensNaoVistas, onMenuClick }: RhHeaderProps) => 
           error: { iconTheme: { primary: "#ef4444", secondary: "white" } },
         }}
       />
-    </header>
+    </>
   );
 };

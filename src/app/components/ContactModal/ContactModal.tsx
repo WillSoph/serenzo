@@ -25,7 +25,7 @@ export function ContactModal({
   },
 }: Props) {
   return (
-    <Modal isOpen={open} title="Fale com a Serenzo" onClose={onClose}>
+    <Modal isOpen={open} title="Fale com a Previsiva" onClose={onClose}>
       <p className="text-slate-600 mb-4">
         Escolha um dos canais abaixo para falar com nosso time. Respondemos o
         quanto antes!
@@ -37,7 +37,7 @@ export function ContactModal({
           target="_blank"
           rel="noopener noreferrer"
           className="cursor-pointer group rounded-xl border border-slate-200 p-4 flex flex-col items-center gap-2 hover:border-emerald-300 hover:bg-emerald-50 transition"
-          aria-label="Abrir Instagram da Serenzo"
+          aria-label="Abrir Instagram da Previsiva"
         >
           <div className="rounded-full p-3 bg-pink-50 group-hover:bg-pink-100">
             <Instagram className="h-6 w-6 text-pink-600" />
@@ -51,7 +51,7 @@ export function ContactModal({
           target="_blank"
           rel="noopener noreferrer"
           className="cursor-pointer group rounded-xl border border-slate-200 p-4 flex flex-col items-center gap-2 hover:border-emerald-300 hover:bg-emerald-50 transition"
-          aria-label="Abrir LinkedIn da Serenzo"
+          aria-label="Abrir LinkedIn da Previsiva"
         >
           <div className="rounded-full p-3 bg-blue-50 group-hover:bg-blue-100">
             <Linkedin className="h-6 w-6 text-blue-700" />
@@ -65,7 +65,7 @@ export function ContactModal({
           target="_blank"
           rel="noopener noreferrer"
           className="cursor-pointer group rounded-xl border border-slate-200 p-4 flex flex-col items-center gap-2 hover:border-emerald-300 hover:bg-emerald-50 transition"
-          aria-label="Abrir WhatsApp da Serenzo"
+          aria-label="Abrir WhatsApp da Previsiva"
         >
           <div className="rounded-full p-3 bg-green-50 group-hover:bg-green-100">
             <MessageCircle className="h-6 w-6 text-green-600" />

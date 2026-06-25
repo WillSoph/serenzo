@@ -26,13 +26,13 @@ export default function RhDashboard() {
         setMenuAberto={setMenuAberto}
       />
 
-      <main className="flex-1 ml-0">
+      <main className="flex-1 md:ml-72">
       <RhHeader
         mensagensNaoVistas={mensagensNaoVistas}
         onMenuClick={() => setMenuAberto(true)}
       />
 
-        <div className="pt-20 p-6 max-w-screen max-h-screen">
+        <div className="pt-24 p-6 max-w-screen max-h-screen">
           {telaAtiva === 'home' && <HomeDashboard />}
           {telaAtiva === 'inbox' && <CaixaDeEntrada />}
           {telaAtiva === 'enviadas' && <MensagensEnviadas />}

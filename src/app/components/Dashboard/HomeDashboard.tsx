@@ -27,7 +27,14 @@ import {
 import { db } from '@/services/firebase';
 import { useAuth } from '@/context/useAuth';
 import { useUserData } from '@/hooks/useUserData';
-import { CheckCircle2, Clock3, MessageSquare, AlertTriangle } from 'lucide-react';
+import {
+  CheckCircle2,
+  Clock3,
+  MessageSquare,
+  AlertTriangle,
+  Users,
+  Inbox,
+} from 'lucide-react';
 
 type Msg = {
   id: string;
@@ -36,13 +43,12 @@ type Msg = {
   tipo?: string;
   tipoDetectado?: string;
   respostaRH?: string;
+  lida?: boolean;
   createdAt?: any;
-  // possíveis campos vindos na msg
   setor?: string;
   departamento?: string;
   area?: string;
   time?: string;
-  // possíveis chaves de autor
   uid?: string;
   autorUid?: string;
   userId?: string;
@@ -74,7 +80,6 @@ function fmtData(d?: any) {
   }
 }
 
-// tenta extrair o uid do autor independentemente do nome do campo
 function getAutorUid(m: Msg): string | undefined {
   return (
     m.autorUid ||
@@ -97,7 +102,6 @@ export function HomeDashboard() {
   const [rows, setRows] = useState<Msg[]>([]);
   const [userAreasMap, setUserAreasMap] = useState<Record<string, string>>({});
 
-  // mensagens da empresa
   useEffect(() => {
     if (!empresaId) {
       setRows([]);
@@ -112,38 +116,49 @@ export function HomeDashboard() {
     );
 
     setLoading(true);
+
     const unsub = onSnapshot(
       qy,
       { includeMetadataChanges: true },
       (snap) => {
         if (snap.metadata.fromCache && !snap.metadata.hasPendingWrites) return;
-        const data = snap.docs.map((d) => ({ id: d.id, ...(d.data() as DocumentData) })) as Msg[];
+
+        const data = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as DocumentData),
+        })) as Msg[];
+
         setRows(data);
         setLoading(false);
       },
       () => setLoading(false)
     );
+
     return () => unsub();
   }, [empresaId]);
 
-  // 🔗 mapa uid → área/setor do usuário (top-level "usuarios" com empresaId)
   useEffect(() => {
     if (!empresaId) {
       setUserAreasMap({});
       return;
     }
+
     const qUsers = query(collection(db, 'usuarios'), where('empresaId', '==', empresaId));
+
     const unsub = onSnapshot(qUsers, (snap) => {
       const map: Record<string, string> = {};
+
       snap.forEach((doc) => {
         const d = doc.data() as any;
         const uid = d?.uid || doc.id;
-        const area =
-          d?.area || d?.setor || d?.departamento || d?.time || 'Sem setor';
+        const area = d?.area || d?.setor || d?.departamento || d?.time || 'Sem setor';
+
         if (uid) map[uid] = String(area);
       });
+
       setUserAreasMap(map);
     });
+
     return () => unsub();
   }, [empresaId]);
 
@@ -151,8 +166,14 @@ export function HomeDashboard() {
     const total = rows.length;
     const respondidas = rows.filter((m) => !!m.respostaRH?.trim()).length;
     const pendentes = total - respondidas;
+    const naoLidas = rows.filter((m) => !m.lida).length;
+    const colaboradoresAtivos = new Set(rows.map(getAutorUid).filter(Boolean)).size;
+
+    const percentualRespondidas =
+      total > 0 ? Number(((respondidas / total) * 100).toFixed(1)) : 0;
 
     const counts = { sugestao: 0, critica: 0, ajuda: 0 };
+
     const setoresAgg: Record<
       string,
       { setor: string; criticas: number; pedidosAjuda: number; total: number }
@@ -161,24 +182,32 @@ export function HomeDashboard() {
     rows.forEach((m) => {
       const tipo = normalizeTipo(m.tipoDetectado || m.tipo);
 
-      // barras por tipo
-      if ((counts as any)[tipo] !== undefined) (counts as any)[tipo] += 1;
-      else counts.sugestao += 1;
+      if ((counts as any)[tipo] !== undefined) {
+        (counts as any)[tipo] += 1;
+      } else {
+        counts.sugestao += 1;
+      }
 
-      // setor: tenta dos campos da msg; se não houver, cai na área do autor; senão "Sem setor"
       const autorUid = getAutorUid(m);
       const setorMsg =
-        m.setor || m.departamento || m.area || m.time || (autorUid ? userAreasMap[autorUid] : '');
+        m.setor ||
+        m.departamento ||
+        m.area ||
+        m.time ||
+        (autorUid ? userAreasMap[autorUid] : '');
+
       const setor = setorMsg ? String(setorMsg) : 'Sem setor';
 
-      // agrega apenas críticas e pedidos de ajuda
       if (tipo === 'critica' || tipo === 'ajuda') {
         if (!setoresAgg[setor]) {
           setoresAgg[setor] = { setor, criticas: 0, pedidosAjuda: 0, total: 0 };
         }
+
         if (tipo === 'critica') setoresAgg[setor].criticas += 1;
         if (tipo === 'ajuda') setoresAgg[setor].pedidosAjuda += 1;
-        setoresAgg[setor].total = setoresAgg[setor].criticas + setoresAgg[setor].pedidosAjuda;
+
+        setoresAgg[setor].total =
+          setoresAgg[setor].criticas + setoresAgg[setor].pedidosAjuda;
       }
     });
 
@@ -188,163 +217,321 @@ export function HomeDashboard() {
       { tipo: 'Pedidos de Ajuda', total: counts.ajuda, key: 'ajuda' },
     ];
 
-    // série últimos 14 dias
     const days = 14;
     const today = new Date();
     const start = new Date(today);
     start.setDate(today.getDate() - (days - 1));
+
     const bucket = new Map<string, number>();
+
     for (let i = 0; i < days; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
+
       bucket.set(
-        new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(d),
+        new Intl.DateTimeFormat('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+        }).format(d),
         0
       );
     }
+
     rows.forEach((m) => {
       const label = fmtData(m.createdAt).slice(0, 5);
       if (bucket.has(label)) bucket.set(label, (bucket.get(label) || 0) + 1);
     });
-    const serie = Array.from(bucket.entries()).map(([dia, total]) => ({ dia, total }));
 
-    // ordena setores por maior atenção
+    const serie = Array.from(bucket.entries()).map(([dia, total]) => ({
+      dia,
+      total,
+    }));
+
     const setoresAtencao = Object.values(setoresAgg).sort((a, b) => b.total - a.total);
 
-    return { kpis: { total, respondidas, pendentes }, barras, serie, setoresAtencao };
+    return {
+      kpis: {
+        total,
+        respondidas,
+        pendentes,
+        percentualRespondidas,
+        naoLidas,
+        colaboradoresAtivos,
+      },
+      barras,
+      serie,
+      setoresAtencao,
+    };
   }, [rows, userAreasMap]);
 
   return (
     <div className="space-y-6">
-      {/* KPIs */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-          <div className="text-sm text-emerald-800">Total de mensagens</div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <MessageSquare className="h-5 w-5 text-emerald-600" />
-            <span className="text-2xl font-semibold text-emerald-900">{kpis.total}</span>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-          <div className="text-sm text-emerald-800">Respondidas</div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            <span className="text-2xl font-semibold text-emerald-900">{kpis.respondidas}</span>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-          <div className="text-sm text-amber-800">Pendentes</div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <Clock3 className="h-5 w-5 text-amber-600" />
-            <span className="text-2xl font-semibold text-amber-900">{kpis.pendentes}</span>
-          </div>
-        </div>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <KpiCard
+          title="Total de mensagens"
+          value={kpis.total}
+          subtitle="Todos os canais"
+          icon={<MessageSquare className="h-6 w-6" />}
+          variant="emerald"
+        />
+
+        <KpiCard
+          title="Respondidas"
+          value={kpis.respondidas}
+          subtitle={`${kpis.percentualRespondidas}% do total`}
+          icon={<CheckCircle2 className="h-6 w-6" />}
+          variant="emerald"
+        />
+
+        <KpiCard
+          title="Pendentes"
+          value={kpis.pendentes}
+          subtitle="Requer atenção"
+          icon={<Clock3 className="h-6 w-6" />}
+          variant="amber"
+        />
       </section>
 
-      {/* Distribuição por tipo + Setores com atenção */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-emerald-900">Distribuição por tipo</h2>
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.95fr]">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900">Distribuição por tipo</h2>
+
+            <button className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50">
+              Últimos 14 dias
+            </button>
           </div>
 
           {loading ? (
-            <div className="h-[260px] rounded-xl bg-emerald-50 animate-pulse" />
+            <div className="h-[280px] animate-pulse rounded-2xl bg-slate-100" />
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={barras}>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={barras} barSize={80}>
                 <XAxis dataKey="tipo" tick={{ fontSize: 12 }} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="total" radius={[6, 6, 0, 0]}>
-                  {barras.map((b, i) => (
-                    <Cell key={i} fill={CORES[b.key as keyof typeof CORES]} />
+                <Bar dataKey="total" radius={[8, 8, 0, 0]}>
+                  {barras.map((b) => (
+                    <Cell key={b.key} fill={CORES[b.key as keyof typeof CORES]} />
                   ))}
                   <LabelList dataKey="total" position="top" />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-5 text-sm text-slate-500">
+            <LegendDot color="bg-emerald-500" label="Sugestões" />
+            <LegendDot color="bg-amber-500" label="Críticas" />
+            <LegendDot color="bg-red-500" label="Pedidos de Ajuda" />
+          </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-emerald-900 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
               Setores que precisam de atenção
             </h2>
+
+            <button className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50">
+              Ver todos
+            </button>
           </div>
 
           {loading ? (
-            <div className="h-[260px] rounded-xl bg-emerald-50 animate-pulse" />
+            <div className="h-[280px] animate-pulse rounded-2xl bg-slate-100" />
           ) : setoresAtencao.length === 0 ? (
-            <div className="h-[260px] flex items-center justify-center text-slate-500 text-sm">
+            <div className="flex h-[280px] items-center justify-center rounded-2xl bg-slate-50 text-sm text-slate-500">
               Nenhum setor com críticas ou pedidos de ajuda.
             </div>
           ) : (
-            <div className="h-[260px] overflow-auto pr-1">
-              <ul className="divide-y divide-slate-100">
-                {setoresAtencao.map((s, idx) => (
-                  <li key={s.setor} className="py-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-6 text-slate-400 text-sm tabular-nums">{idx + 1}.</span>
-                      <span className="font-medium text-slate-800 truncate">{s.setor}</span>
+            <div className="space-y-4">
+              {setoresAtencao.slice(0, 5).map((s, idx) => (
+                <div key={s.setor} className="rounded-2xl border border-slate-100 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-500">
+                        {idx + 1}
+                      </span>
+
+                      <p className="truncate font-semibold text-slate-800">{s.setor}</p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs rounded-full bg-amber-100 text-amber-700 px-2 py-0.5">
-                        {s.criticas} críticas
-                      </span>
-                      <span className="text-xs rounded-full bg-red-100 text-red-700 px-2 py-0.5">
-                        {s.pedidosAjuda} pedidos
-                      </span>
-                      <span className="text-xs rounded-full bg-slate-100 text-slate-700 px-2 py-0.5">
-                        {s.total} total
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+
+                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      {s.total} total
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700">
+                      {s.criticas} críticas
+                    </span>
+
+                    <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
+                      {s.pedidosAjuda} pedidos
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* Série temporal últimos 14 dias */}
-      <section className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-emerald-900">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">
             Mensagens por dia (últimos 14 dias)
           </h2>
+
+          <button className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50">
+            Últimos 14 dias
+          </button>
         </div>
 
         {loading ? (
-          <div className="h-56 rounded-xl bg-emerald-50 animate-pulse" />
+          <div className="h-[260px] animate-pulse rounded-2xl bg-slate-100" />
         ) : (
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={serie}>
               <defs>
                 <linearGradient id="areaEmerald" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.5} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.03} />
                 </linearGradient>
               </defs>
+
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="dia" tick={{ fontSize: 12 }} />
               <YAxis allowDecimals={false} />
               <Tooltip />
+
               <Area
                 type="monotone"
                 dataKey="total"
                 stroke="#10b981"
                 fill="url(#areaEmerald)"
                 strokeWidth={2}
-                dot={{ r: 2 }}
-                activeDot={{ r: 4 }}
+                dot={{ r: 3 }}
+                activeDot={{ r: 5 }}
               />
             </AreaChart>
           </ResponsiveContainer>
         )}
       </section>
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SmallMetricCard
+          title="Mensagens não lidas"
+          value={kpis.naoLidas}
+          subtitle="Aguardando leitura"
+          icon={<Inbox className="h-6 w-6" />}
+          variant="amber"
+        />
+
+        <SmallMetricCard
+          title="Colaboradores ativos"
+          value={kpis.colaboradoresAtivos}
+          subtitle="Participaram este mês"
+          icon={<Users className="h-6 w-6" />}
+          variant="purple"
+        />
+
+        <SmallMetricCard
+          title="Taxa de resposta"
+          value={`${kpis.percentualRespondidas}%`}
+          subtitle="Mensagens respondidas"
+          icon={<CheckCircle2 className="h-6 w-6" />}
+          variant="emerald"
+        />
+      </section>
     </div>
+  );
+}
+
+function KpiCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  variant,
+}: {
+  title: string;
+  value: number | string;
+  subtitle: string;
+  icon: React.ReactNode;
+  variant: 'emerald' | 'amber';
+}) {
+  const styles = {
+    emerald: {
+      card: 'border-emerald-100 bg-gradient-to-br from-white to-emerald-50/70',
+      icon: 'bg-emerald-100 text-emerald-600',
+    },
+    amber: {
+      card: 'border-amber-100 bg-gradient-to-br from-white to-amber-50/80',
+      icon: 'bg-amber-100 text-amber-600',
+    },
+  }[variant];
+
+  return (
+    <div className={`rounded-3xl border p-6 shadow-sm transition hover:shadow-md ${styles.card}`}>
+      <div className="flex items-center gap-5">
+        <div className={`flex h-16 w-16 items-center justify-center rounded-full ${styles.icon}`}>
+          {icon}
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-slate-600">{title}</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">{value}</p>
+          <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SmallMetricCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  variant,
+}: {
+  title: string;
+  value: number | string;
+  subtitle: string;
+  icon: React.ReactNode;
+  variant: 'emerald' | 'amber' | 'purple';
+}) {
+  const styles = {
+    emerald: 'bg-emerald-100 text-emerald-600',
+    amber: 'bg-amber-100 text-amber-600',
+    purple: 'bg-purple-100 text-purple-600',
+  }[variant];
+
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-14 w-14 items-center justify-center rounded-full ${styles}`}>
+          {icon}
+        </div>
+
+        <div>
+          <p className="text-sm font-medium text-slate-600">{title}</p>
+          <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-sm text-slate-500">{subtitle}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={`h-3 w-3 rounded-full ${color}`} />
+      {label}
+    </span>
   );
 }

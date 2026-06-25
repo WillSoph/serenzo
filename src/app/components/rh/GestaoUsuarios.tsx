@@ -11,6 +11,7 @@ import { Plus, Search, Trash2, Users } from "lucide-react";
 import { AREAS } from "@/data/areas";
 import { TipoChip } from "../TipoChip/TipoChip";
 import { AreaBadge } from "../AreaBadge/AreaBadge";
+import { UsuariosEmpresaTable } from "./UsuariosEmpresaTable";
 
 type TipoUsuario = 'admin' | 'comum' | 'rh' | 'colaborador';
 
@@ -170,77 +171,13 @@ export default function GestaoUsuarios() {
         </Button>
       </div>
 
-      {/* Busca */}
-      <div className="mb-4 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none"
-            placeholder="Buscar por nome, e-mail, tipo ou área…"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-        <div className="text-sm text-slate-500">{filtrados.length} resultado(s)</div>
-      </div>
-
-      {/* Tabela */}
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm">
-        <div
-          className="max-h-[60vh] overflow-x-auto overflow-y-auto w-full max-w-full"
-          style={{ overscrollBehaviorX: "contain", overscrollBehaviorY: "contain", WebkitOverflowScrolling: "touch" }}
-          role="region"
-          aria-label="Lista de usuários (scroll)"
-        >
-          <div className="min-w-[1040px]">{/* +160px para futura coluna de área, se quiser exibir depois */}
-          <div className="grid grid-cols-12 px-4 py-3 text-xs font-semibold text-slate-500 border-b sticky top-0 bg-white z-10">
-            <div className="col-span-3">Nome</div>
-            <div className="col-span-4">E-mail</div>
-            <div className="col-span-3">Área</div>
-            <div className="col-span-1">Tipo</div>
-            <div className="col-span-1 text-right">Ações</div>
-          </div>
-
-            {loading ? (
-              <div className="p-6 text-slate-500">Carregando…</div>
-            ) : filtrados.length === 0 ? (
-              <div className="p-6 text-slate-500">Nenhum usuário encontrado.</div>
-            ) : (
-              <ul className="divide-y">
-                {filtrados.map((u) => (
-                  <li key={u.uid} className="grid grid-cols-12 items-center px-4 py-4">
-                  <div className="col-span-3">
-                    <div className="font-medium text-emerald-900 truncate">{u.nome || "—"}</div>
-                  </div>
-                
-                  <div className="col-span-4 text-emerald-800 truncate">{u.email}</div>
-                
-                  <div className="col-span-3">
-                    <AreaBadge area={u.area} />
-                  </div>
-                
-                  <div className="col-span-1">
-                    <TipoChip tipo={u.tipo} />
-                  </div>
-                
-                  <div className="col-span-1 flex justify-end">
-                    <Button
-                      variant="destructive"
-                      onClick={() => setModalDel({ open: true, alvo: u })}
-                      className="h-8 px-3 text-sm inline-flex items-center gap-1"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Excluir
-                    </Button>
-                  </div>
-                </li>
-                
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      </div>
+      <UsuariosEmpresaTable
+        usuarios={filtrados}
+        loading={loading}
+        busca={busca}
+        onBuscaChange={setBusca}
+        onExcluir={(usuario) => setModalDel({ open: true, alvo: usuario })}
+      />
 
       {/* Modal Adicionar */}
       <Modal isOpen={modalAdd} onClose={() => setModalAdd(false)} title="Adicionar novo usuário">

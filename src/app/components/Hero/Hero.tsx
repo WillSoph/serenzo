@@ -1,42 +1,54 @@
 "use client";
-import React, { useEffect, useState } from 'react';
-import { Button } from '../ui/Button';
+
+import React, { useEffect, useState } from "react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Heart,
+  Lock,
+  PlayCircle,
+  ShieldCheck,
+  X,
+} from "lucide-react";
+import { Button } from "../ui/Button";
 
 export function Hero() {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
 
-  // Troque pelos seus arquivos de imagem
   const slides = [
-    { src: '/slides/como-funciona-1.png', alt: 'Envio de mensagem pelo colaborador' },
-    { src: '/slides/como-funciona-2.png', alt: 'IA analisando e priorizando' },
-    { src: '/slides/como-funciona-3.png', alt: 'RH recebe com sugestão e vê o dashboard' },
-    { src: '/slides/como-funciona-4.png', alt: 'O RH acompanha um dashboard' },
+    { src: "/slides/como-funciona-1.png", alt: "Envio de mensagem pelo colaborador" },
+    { src: "/slides/como-funciona-2.png", alt: "IA analisando e priorizando" },
+    { src: "/slides/como-funciona-3.png", alt: "RH recebe com sugestão e vê o dashboard" },
+    { src: "/slides/como-funciona-4.png", alt: "O RH acompanha um dashboard" },
   ];
 
   const steps = [
-    'O colaborador envia uma mensagem ao RH (com opção de anonimato).',
-    'A inteligência artificial analisa o conteúdo, identifica sinais de risco e prioriza o que precisa de atenção.',
-    'O RH visualiza a mensagem com uma sugestão da IA sobre como tratar o caso.',
-    'O RH acompanha um dashboard com os setores que demandam maior atenção.',
+    "O colaborador envia uma mensagem ao RH com opção de anonimato.",
+    "A inteligência artificial analisa o conteúdo, identifica sinais de risco e prioriza o que precisa de atenção.",
+    "O RH visualiza a mensagem com uma sugestão da IA sobre como tratar o caso.",
+    "O RH acompanha um dashboard com os setores que demandam maior atenção.",
   ];
 
   const next = () => setIdx((i) => (i + 1) % slides.length);
   const prev = () => setIdx((i) => (i - 1 + slides.length) % slides.length);
 
-  // Teclado + travar scroll do body quando o modal estiver aberto
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') next();
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === "ArrowRight") next();
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "Escape") setOpen(false);
     };
+
     const bodyPrev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = "hidden";
+
+    window.addEventListener("keydown", onKey);
+
     return () => {
-      window.removeEventListener('keydown', onKey);
+      window.removeEventListener("keydown", onKey);
       document.body.style.overflow = bodyPrev;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -45,117 +57,189 @@ export function Hero() {
   return (
     <section
       id="hero"
-      className="relative overflow-hidden bg-gradient-to-b from-emerald-50 to-indigo-50 pt-28 md:pt-32 pb-16"
+      className="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/60 to-pink-50/40 pt-32 pb-20 md:pt-36 md:pb-24"
     >
-      <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 items-center gap-10">
-        {/* Texto */}
-        <div className="text-center md:text-left">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900">
-            Cuidando da saúde emocional dos seus colaboradores
+      <div className="absolute left-0 top-20 h-72 w-72 rounded-full bg-emerald-200/30 blur-3xl" />
+      <div className="absolute right-0 top-40 h-72 w-72 rounded-full bg-pink-200/30 blur-3xl" />
+
+      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 md:grid-cols-2 md:px-8">
+        <div>
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-white/80 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm">
+            <CheckCircle2 className="h-4 w-4" />
+            Escuta segura, humana e inteligente
+          </div>
+
+          <h1 className="max-w-xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-6xl">
+            Cuidando da saúde emocional dos seus{" "}
+            <span className="text-pink-500">colaboradores</span>
           </h1>
-          <p className="mt-5 text-lg md:text-xl text-gray-700">
-            Plataforma de escuta ativa, análise com IA e apoio psicológico — para empresas que
-            valorizam o bem-estar e a produtividade dos times.
+
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
+            Plataforma de escuta ativa, análise com IA e apoio psicológico — para
+            empresas que valorizam o bem-estar e a produtividade dos times.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center md:justify-start">
-            {/* <a
-              href="#footer"
-              className="inline-flex justify-center items-center bg-emerald-600 text-white px-6 py-3 rounded-lg text-lg font-medium hover:bg-emerald-700 transition"
-            >
-              Solicitar Demonstração
-            </a> */}
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button
               type="button"
               onClick={() => {
                 setIdx(0);
                 setOpen(true);
               }}
-              className=""
+              className="rounded-xl bg-emerald-600 px-6 py-3 text-white hover:bg-emerald-700"
             >
               Ver como funciona
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIdx(0);
+                setOpen(true);
+              }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-200 hover:bg-pink-50 hover:text-pink-600"
+            >
+              <PlayCircle className="h-5 w-5 text-pink-500" />
+              Assistir vídeo
+            </button>
+          </div>
+
+          <div className="mt-9 flex flex-wrap gap-5 text-sm text-slate-600">
+            <span className="inline-flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                <ShieldCheck className="h-4 w-4" />
+              </span>
+              Seguro e anônimo
+            </span>
+
+            <span className="inline-flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                <Lock className="h-4 w-4" />
+              </span>
+              Confiável
+            </span>
+
+            <span className="inline-flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-100 text-pink-500">
+                <Heart className="h-4 w-4" />
+              </span>
+              Focado em pessoas
+            </span>
           </div>
         </div>
 
-        {/* Visual do produto (placeholder) */}
-        <div aria-hidden className="relative">
-          <div className="rounded-2xl border border-emerald-100 bg-white shadow-lg p-4 md:p-6">
-            <img src="/hero-serenzo.png" alt="" className="w-full h-auto rounded-lg" />
+        <div className="relative">
+
+          <div className="absolute -right-4 top-20 hidden rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-100 md:block">
+            <div className="h-10 w-16 rounded-lg bg-emerald-100" />
           </div>
-          <div className="absolute -top-10 -right-10 h-40 w-40 bg-emerald-200/40 rounded-full blur-2xl" />
-          <div className="absolute -bottom-6 -left-6 h-32 w-32 bg-indigo-200/40 rounded-full blur-2xl" />
+
+          <div className="absolute -right-6 bottom-28 hidden rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-100 md:block">
+            <Heart className="h-8 w-8 text-pink-500" />
+          </div>
+
+          <div className="relative">
+
+          {/* Card */}
+          <div className="relative overflow-hidden rounded-[2rem] border border-emerald-100 bg-white/80 p-5 shadow-2xl backdrop-blur z-10">
+            <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-emerald-50 via-white to-pink-50 p-8">              
+              <img
+                src="/mascote-previ.png"
+                alt="Mascote Previ"
+                className="relative mx-auto max-h-[430px] w-full object-contain z-20"
+              />
+            </div>
+          </div>
+
+          {/* Balão principal */}
+          <div className="absolute -left-10 top-20 z-30 hidden md:block">
+              <div className="rounded-2xl bg-white px-6 py-5 shadow-xl ring-1 ring-slate-100">
+                <p className="text-2xl font-bold text-slate-900">
+                  Escuta que acolhe.
+                </p>
+                <p className="text-emerald-600 text-2xl font-bold">
+                  IA que orienta.
+                </p>
+              </div>
+            </div>
+
+
+            {/* Card inferior */}
+            <div className="absolute -right-7 bottom-24 z-30 hidden md:block rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-100">
+              <Heart className="h-8 w-8 text-pink-500" />
+            </div>
+
+          </div>
+
+          <div className="absolute -right-7 top-1/2 text-3xl text-pink-400">♥</div>
+          <div className="absolute -left-5 bottom-20 text-2xl text-pink-400">♥</div>
         </div>
       </div>
 
-      {/* Modal: Como funciona */}
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
           role="dialog"
           aria-modal="true"
           aria-label="Como funciona"
         >
-          {/* backdrop */}
           <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
 
-          {/* content */}
-          <div className="relative w-full max-w-4xl rounded-2xl bg-white shadow-xl ring-1 ring-black/5 overflow-hidden">
-            {/* header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b">
-              <h3 className="text-lg font-semibold text-slate-900">Como funciona</h3>
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Como funciona</h3>
+                <p className="text-sm text-slate-500">
+                  Veja como a Previsiva transforma mensagens em cuidado.
+                </p>
+              </div>
+
               <button
-                className="text-slate-500 hover:text-slate-700 text-xl leading-none cursor-pointer"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
                 onClick={() => setOpen(false)}
                 aria-label="Fechar"
               >
-                ✕
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* slider */}
-            <div className="relative">
-              {/* imagem */}
-              <div className="aspect-[16/9] bg-slate-50 flex items-center justify-center">
+            <div className="relative bg-slate-50">
+              <div className="aspect-[16/9] flex items-center justify-center">
                 <img
                   key={slides[idx].src}
                   src={slides[idx].src}
                   alt={slides[idx].alt}
-                  className="max-h-[60vh] w-full object-contain"
+                  className="max-h-[62vh] w-full object-contain"
                 />
               </div>
 
-              {/* botões prev/next */}
               <button
                 onClick={prev}
-                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border p-2 shadow hover:bg-white cursor-pointer"
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white/90 p-3 shadow transition hover:bg-white"
                 aria-label="Anterior"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={next}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 border p-2 shadow hover:bg-white cursor-pointer"
-                aria-label="Próximo"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                </svg>
+                ‹
               </button>
 
-              {/* indicadores */}
-              <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center gap-2">
+              <button
+                onClick={next}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white/90 p-3 shadow transition hover:bg-white"
+                aria-label="Próximo"
+              >
+                ›
+              </button>
+
+              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
                 {slides.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setIdx(i)}
-                    className={`h-2.5 w-2.5 rounded-full transition ${
-                      i === idx ? 'bg-emerald-600' : 'bg-slate-300 hover:bg-slate-400'
+                    className={`h-2.5 rounded-full transition ${
+                      i === idx ? "w-8 bg-emerald-600" : "w-2.5 bg-slate-300 hover:bg-slate-400"
                     }`}
                     aria-label={`Ir para slide ${i + 1}`}
                   />
@@ -163,31 +247,41 @@ export function Hero() {
               </div>
             </div>
 
-            {/* texto / bullets */}
-            <div className="px-5 pt-4 pb-5">
-              <ul className="text-sm text-slate-700 list-disc pl-5 space-y-1">
+            <div className="px-6 py-5">
+              <div className="grid gap-3 md:grid-cols-4">
                 {steps.map((s, i) => (
-                  <li key={i}>
-                    <span className="font-medium">{i + 1}.</span> {s}
-                  </li>
+                  <div
+                    key={i}
+                    className={`rounded-2xl border p-4 text-sm ${
+                      i === idx
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                        : "border-slate-200 bg-white text-slate-600"
+                    }`}
+                  >
+                    <span className="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+                      {i + 1}
+                    </span>
+                    {s}
+                  </div>
                 ))}
-              </ul>
+              </div>
 
-              {/* rodapé */}
-              <div className="mt-4 flex items-center justify-between">
+              <div className="mt-5 flex items-center justify-between">
                 <span className="text-xs text-slate-500">
                   Slide {idx + 1} de {slides.length}
                 </span>
+
                 <div className="flex gap-2">
                   <button
                     onClick={prev}
-                    className="px-3 py-2 rounded-lg border text-slate-700 hover:bg-slate-50 cursor-pointer"
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                   >
                     Anterior
                   </button>
+
                   <button
                     onClick={next}
-                    className="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 cursor-pointer"
+                    className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
                   >
                     Próximo
                   </button>

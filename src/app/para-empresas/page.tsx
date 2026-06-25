@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "../components/Footer/Footer";
 
-const title = "Serenzo para empresas | Reduza riscos e aumente o bem-estar";
+const title = "Previsiva para empresas | Reduza riscos e aumente o bem-estar";
 const description =
   "Plataforma de bem-estar corporativo com escuta ativa, IA e painéis para RH. Reduza turnover, melhore clima e previna crises.";
 
@@ -20,7 +20,7 @@ export default function ParaEmpresasPage() {
     <>
     <main className="max-w-5xl mx-auto px-4 py-16">
       <Link href="/" className="hover:text-emerald-900 flex mb-6"><ArrowBigLeft />  Voltar para Home</Link>
-      <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Serenzo para empresas</h1>
+      <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Previsiva para empresas</h1>
       <p className="mt-3 text-slate-700">
         Transforme feedback em ações. Acompanhe sinais precoces e crie um ambiente de trabalho saudável.
       </p>

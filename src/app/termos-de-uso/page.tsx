@@ -5,9 +5,9 @@ import { Footer } from "../components/Footer/Footer";
 import { ArrowBigLeft } from "lucide-react";
 
 const base = process.env.NEXT_PUBLIC_BASE_URL || "";
-const title = "Termos de Uso | Serenzo";
+const title = "Termos de Uso | Previsiva";
 const description =
-  "Condições para utilização do site e serviços da Serenzo. Leia atentamente antes de usar a plataforma.";
+  "Condições para utilização do site e serviços da Previsiva. Leia atentamente antes de usar a plataforma.";
 
 export const metadata: Metadata = {
   title,
@@ -30,7 +30,7 @@ export default function TermosUsoPage() {
     url: `${base}/termos-de-uso`,
     publisher: {
       "@type": "Organization",
-      name: "Serenzo",
+      name: "Previsiva",
       url: base,
       logo: { "@type": "ImageObject", url: `${base}/favicon.png` },
     },
@@ -57,7 +57,7 @@ export default function TermosUsoPage() {
 
         <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Termos de Uso</h1>
         <p className="mt-3 text-slate-700">
-          Ao acessar e utilizar os serviços da Serenzo, você concorda com as condições abaixo. Caso não concorde, não utilize a plataforma.
+          Ao acessar e utilizar os serviços da Previsiva, você concorda com as condições abaixo. Caso não concorde, não utilize a plataforma.
         </p>
 
         <section className="mt-8 space-y-6">
@@ -106,7 +106,7 @@ export default function TermosUsoPage() {
           <div>
             <h2 className="text-xl font-semibold text-emerald-900">6. Limitações de responsabilidade</h2>
             <p className="text-slate-700 mt-2">
-              A Serenzo envida esforços para manter a disponibilidade e segurança do serviço, mas não garante operação
+              A Previsiva envida esforços para manter a disponibilidade e segurança do serviço, mas não garante operação
               ininterrupta. Não nos responsabilizamos por danos indiretos decorrentes do uso indevido da plataforma.
             </p>
           </div>

@@ -95,7 +95,7 @@ export default function BlogClient() {
                   <p>{p.content}</p>
                   <div className="mt-4">
                     <Link href="/contato" className="text-emerald-700 hover:underline">
-                      Fale com a Serenzo →
+                      Fale com a Previsiva →
                     </Link>
                   </div>
                 </article>

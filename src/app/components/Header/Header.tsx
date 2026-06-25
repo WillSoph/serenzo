@@ -1,9 +1,10 @@
 "use client";
-import React, { useEffect, useState } from 'react';
-import { AuthModal } from '../AuthModal/AuthModal';
-import { Menu, X } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { ContactModal } from '../ContactModal/ContactModal';
+
+import React, { useEffect, useState } from "react";
+import { AuthModal } from "../AuthModal/AuthModal";
+import { Menu, X } from "lucide-react";
+import { Button } from "../ui/Button";
+import { ContactModal } from "../ContactModal/ContactModal";
 
 export function Header() {
   const [showAuth, setShowAuth] = useState(false);
@@ -14,71 +15,122 @@ export function Header() {
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const navLinkClass =
+    "text-sm font-medium text-slate-700 transition hover:text-emerald-700";
 
   return (
     <header
-      className={`w-full fixed top-0 left-0 z-50 transition
-        ${scrolled ? 'bg-white/90 backdrop-blur shadow-sm' : 'bg-white'}`}
-      aria-label="Cabeçalho da Serenzo"
+      className={`fixed left-0 top-0 z-50 w-full transition-all ${
+        scrolled
+          ? "border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-xl"
+          : "bg-white/80 backdrop-blur-xl"
+      }`}
+      aria-label="Cabeçalho da Previsiva"
     >
       {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8">
         <a href="#hero" className="flex items-center">
           <img
-              src="/logo-serenzo.png"
-              alt="Logo Serenzo"
-              className="rounded-lg w-[140px] h-10"
-            />
+            src="/logo-previsiva.png"
+            alt="Logo Previsiva"
+            className="h-11 w-auto"
+          />
         </a>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-6 text-gray-700 font-medium">
-          <a href="#about" className="hover:text-emerald-700">Quem somos</a>
-          <a href="#benefits" className="hover:text-emerald-700">Vantagens</a>
-          <a href="#testimonials" className="hover:text-emerald-700">Depoimentos</a>
-          <Button variant="outline" onClick={() => setContactOpen(true)}>Contato</Button>
+        <nav className="hidden items-center gap-8 md:flex">
+          <a href="#about" className={navLinkClass}>
+            Quem somos
+          </a>
+          <a href="#benefits" className={navLinkClass}>
+            Vantagens
+          </a>
+          <a href="#testimonials" className={navLinkClass}>
+            Depoimentos
+          </a>
+
+          <button
+            type="button"
+            onClick={() => setContactOpen(true)}
+            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            Contato
+          </button>
         </nav>
 
         <div className="hidden md:block">
           <Button
             onClick={() => setShowAuth(true)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+            className="rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
           >
             Entrar
           </Button>
         </div>
 
-        {/* Mobile button */}
         <button
           aria-label="Abrir menu"
-          className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+          className="rounded-xl p-2 text-slate-700 transition hover:bg-slate-100 md:hidden"
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X /> : <Menu />}
         </button>
       </div>
 
-      {/* Mobile nav */}
       {open && (
-        <div className="md:hidden border-t bg-white">
-          <nav className="max-w-6xl mx-auto px-4 py-3 grid gap-3 text-gray-800">
-            <a onClick={() => setOpen(false)} href="#about" className="py-1">Quem somos</a>
-            <a onClick={() => setOpen(false)} href="#benefits" className="py-1">Vantagens</a>
-            <a onClick={() => setOpen(false)} href="#testimonials" className="py-1">Depoimentos</a>
-            <a onClick={() => setOpen(false)} href="#footer" className="py-1">Contato</a>
+        <div className="border-t border-slate-100 bg-white/95 backdrop-blur-xl md:hidden">
+          <nav className="mx-auto grid max-w-7xl gap-2 px-5 py-4 text-slate-800">
+            <a
+              onClick={() => setOpen(false)}
+              href="#about"
+              className="rounded-xl px-3 py-2 hover:bg-emerald-50"
+            >
+              Quem somos
+            </a>
+            <a
+              onClick={() => setOpen(false)}
+              href="#benefits"
+              className="rounded-xl px-3 py-2 hover:bg-emerald-50"
+            >
+              Vantagens
+            </a>
+            <a
+              onClick={() => setOpen(false)}
+              href="#testimonials"
+              className="rounded-xl px-3 py-2 hover:bg-emerald-50"
+            >
+              Depoimentos
+            </a>
+
             <button
-              onClick={() => { setOpen(false); setShowAuth(true); }}
-              className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-center"
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setContactOpen(true);
+              }}
+              className="rounded-xl px-3 py-2 text-left hover:bg-emerald-50"
+            >
+              Contato
+            </button>
+
+            <button
+              onClick={() => {
+                setOpen(false);
+                setShowAuth(true);
+              }}
+              className="mt-2 rounded-xl bg-emerald-600 px-4 py-3 text-center font-semibold text-white transition hover:bg-emerald-700"
             >
               Entrar
             </button>
           </nav>
         </div>
       )}
-    <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />  
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </header>
   );
 }

@@ -3,7 +3,7 @@ import { ArrowBigLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "../components/Footer/Footer";
-const title = "Contato | Serenzo";
+const title = "Contato | Previsiva";
 const description = "Fale com nossa equipe comercial e de suporte.";
 
 export const metadata: Metadata = {

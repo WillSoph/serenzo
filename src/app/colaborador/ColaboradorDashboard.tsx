@@ -312,90 +312,99 @@ export default function ColaboradorDashboard() {
   /* ------------------------------------------------------------------ */
 
   return (
-    <div className="flex bg-gray-50 min-h-screen">
-      <ColaboradorSidebar
-        telaAtiva={telaAtiva}
-        setTelaAtiva={setTelaAtiva}
-        menuAberto={menuAberto}
-        setMenuAberto={setMenuAberto}
+  <div className="h-screen overflow-hidden bg-slate-50">
+    <ColaboradorSidebar
+      telaAtiva={telaAtiva}
+      setTelaAtiva={setTelaAtiva}
+      menuAberto={menuAberto}
+      setMenuAberto={setMenuAberto}
+    />
+
+    <div className="h-screen md:ml-72">
+      <ColaboradorHeader
+        mensagensNaoVistas={{ inbox: mensagens.length, enviadas: 0, ajuda: 0 }}
+        onMenuClick={() => setMenuAberto(true)}
       />
 
-      <div className="flex-1">
-        <ColaboradorHeader
-          mensagensNaoVistas={{ inbox: mensagens.length, enviadas: 0, ajuda: 0 }}
-          onMenuClick={() => setMenuAberto(true)}
-        />
+      <main className="h-[calc(100vh-1rem)] overflow-y-auto px-5 pt-24 pb-8 md:px-8">
+        {showToast && (
+          <Toast
+            message="Mensagem enviada com sucesso!"
+            type="success"
+            onClose={() => setShowToast(false)}
+          />
+        )}
 
-        <main className="pt-24 px-4 sm:px-6">
-          {showToast && (
-            <Toast
-              message="Mensagem enviada com sucesso!"
-              type="success"
-              onClose={() => setShowToast(false)}
-            />
-          )}
+        <Modal isOpen={showModal} title="Mensagem enviada com sucesso!" onClose={() => setShowModal(false)}>
+          <p className="mb-4 text-slate-700">
+            Obrigado por compartilhar. Em breve o RH poderá responder diretamente aqui.
+          </p>
+          <div className="flex justify-end">
+            <Button onClick={() => setShowModal(false)}>Fechar</Button>
+          </div>
+        </Modal>
 
-          {/* Modal de confirmação de envio */}
-          <Modal isOpen={showModal} title="Mensagem enviada com sucesso!" onClose={() => setShowModal(false)}>
-            <p className="mb-4 text-slate-700">
-              Obrigado por compartilhar. Em breve o RH poderá responder diretamente aqui.
-            </p>
-            <div className="flex justify-end">
-              <Button onClick={() => setShowModal(false)}>Fechar</Button>
-            </div>
-          </Modal>
+        <Modal isOpen={resourceModal.open} title={resourceTitle} onClose={closeResource}>
+          <div className="mb-4">
+            <ResourceContent />
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={closeResource}>Fechar</Button>
+          </div>
+        </Modal>
 
-          {/* Modal de Recursos úteis */}
-          <Modal isOpen={resourceModal.open} title={resourceTitle} onClose={closeResource}>
-            <div className="mb-4">
-              <ResourceContent />
-            </div>
-            <div className="flex justify-end">
-              <Button onClick={closeResource}>Fechar</Button>
-            </div>
-          </Modal>
+        <div className="mx-auto space-y-6">
+          {telaAtiva === 'home' && (
+            <>
+              <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-white to-emerald-50/70 p-6 shadow-sm md:p-8">
+                <div className="max-w-3xl">
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    Canal seguro
+                  </span>
 
-          <div className="max-w-5xl mx-auto">
-            <div className="mb-6">
-              <h1 className="text-2xl md:text-3xl font-bold text-emerald-900">
-                {telaAtiva === 'home' ? 'Bem-vindo à sua área de bem-estar' : 'Mensagens e Respostas'}
-              </h1>
+                  <h1 className="mt-4 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">
+                    Bem-vindo à sua área de bem-estar
+                  </h1>
 
-              {telaAtiva === 'home' && (
-                <p className="mt-1 text-slate-600">
-                  Compartilhe sugestões, críticas, elogios ou pedidos de ajuda. Sua voz importa — você pode escolher
-                  enviar de forma anônima.
-                </p>
-              )}
-            </div>
+                  <p className="mt-3 text-base text-slate-600">
+                    Compartilhe sugestões, críticas, elogios ou pedidos de ajuda.
+                    Sua voz importa — você pode escolher enviar de forma anônima.
+                  </p>
+                </div>
+              </section>
 
-            {telaAtiva === 'home' && (
-              /* -------------------- grid 2 colunas (composer + painéis) -------------------- */
-              <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-                {/* Coluna esquerda (2/3) = formulário + chips + contador + dicas */}
-                <div className="lg:col-span-2 space-y-4">
-                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 sm:p-6">
+              <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.4fr_0.8fr]">
+                <div className="space-y-5">
+                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     {!userData?.empresaId && !userDataLoading && (
-                      <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800 text-sm">
+                      <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                         Aviso: empresa do colaborador não identificada. Recarregue a página ou faça login novamente.
                       </div>
                     )}
 
-                    {/* chips de atalho */}
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="mb-5">
+                      <h2 className="text-xl font-bold text-slate-900">
+                        Enviar nova mensagem
+                      </h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Escolha o tipo, descreva a situação e envie ao RH.
+                      </p>
+                    </div>
+
+                    <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {TIPO_CHIPS.map((c) => {
                         const active = tipo === c.key;
+
                         return (
                           <button
                             key={c.key}
                             type="button"
                             onClick={() => setTipo(c.key)}
-                            className={
-                              'px-3 py-1.5 rounded-full text-sm border transition-colors ' +
-                              (active
-                                ? 'bg-emerald-600 text-white border-emerald-600'
-                                : 'border-slate-300 text-slate-700 hover:bg-emerald-50')
-                            }
+                            className={`rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                              active
+                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-100'
+                                : 'border-slate-200 bg-white text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/50'
+                            }`}
                           >
                             {c.label}
                           </button>
@@ -403,14 +412,16 @@ export default function ColaboradorDashboard() {
                       })}
                     </div>
 
-                    {/* FORM ORIGINAL (mantido) */}
-                    <div className="grid sm:grid-cols-2 gap-4 items-center">
+                    <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de mensagem</label>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">
+                          Tipo de mensagem
+                        </label>
+
                         <select
                           value={tipo}
                           onChange={(e) => setTipo(e.target.value)}
-                          className="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                         >
                           <option value="" disabled>
                             Selecione o tipo…
@@ -422,86 +433,111 @@ export default function ColaboradorDashboard() {
                         </select>
                       </div>
 
-                      <div className="flex items-center sm:justify-end sm:mt-5">
-                        <label className="inline-flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={anonimo}
-                            onChange={() => setAnonimo(!anonimo)}
-                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <span className="text-sm text-slate-700">Enviar como anônimo</span>
-                        </label>
-                      </div>
+                      <label className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={anonimo}
+                          onChange={() => setAnonimo(!anonimo)}
+                          className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        Enviar como anônimo
+                      </label>
                     </div>
 
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Mensagem</label>
+                    <div className="mt-5">
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        Mensagem
+                      </label>
+
                       <textarea
                         placeholder="Digite sua mensagem aqui..."
-                        className="w-full min-h-[140px] border border-slate-300 rounded-lg px-3 py-2 text-slate-900 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        className="min-h-[190px] w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                         value={mensagem}
                         onChange={(e) => setMensagem(e.target.value)}
                         maxLength={MAX_CHARS}
                       />
-                      <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                        <span>
-                          {usedChars}/{MAX_CHARS}
-                        </span>
-                        <span className="hidden sm:inline">Rascunho é salvo automaticamente</span>
+
+                      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+                        <span>{usedChars}/{MAX_CHARS}</span>
+                        <span>Rascunho salvo automaticamente</span>
                       </div>
-                      <div className="mt-4 flex justify-end">
-                        <Button onClick={handleEnviar} disabled={!podeEnviar} loading={enviando} className="px-6">
-                          {enviando ? 'Enviando…' : 'Enviar'}
+
+                      <div className="mt-5 flex justify-end">
+                        <Button
+                          onClick={handleEnviar}
+                          disabled={!podeEnviar}
+                          loading={enviando}
+                          className="px-7"
+                        >
+                          {enviando ? 'Enviando…' : 'Enviar mensagem'}
                         </Button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Dicas rápidas */}
-                  <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                    <h3 className="font-medium text-slate-900 mb-2">Dicas para uma mensagem clara</h3>
-                    <ul className="text-sm text-slate-600 list-disc pl-5 space-y-1">
-                      <li>Explique o que aconteceu e quando.</li>
-                      <li>Descreva o impacto (em você, no time ou no cliente).</li>
-                      <li>Se puder, sugira um caminho ou necessidade.</li>
-                    </ul>
+                  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h3 className="font-semibold text-slate-900">
+                      Dicas para uma mensagem clara
+                    </h3>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                      <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                        Explique o que aconteceu e quando.
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                        Descreva o impacto em você, no time ou no cliente.
+                      </div>
+                      <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                        Se puder, sugira um caminho ou necessidade.
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Coluna direita (1/3) = painéis auxiliares */}
-                <div className="space-y-4">
-                  {/* Últimas mensagens — máx. 5 + altura controlada */}
-                  <div className="rounded-xl border border-slate-200 p-4 bg-white">
+                <aside className="space-y-5">
+                  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-slate-900">Suas últimas mensagens</h3>
-                      <button onClick={() => setTelaAtiva('inbox')} className="text-emerald-700 text-sm hover:underline">
-                        ver tudo
+                      <h3 className="font-semibold text-slate-900">
+                        Suas últimas mensagens
+                      </h3>
+
+                      <button
+                        onClick={() => setTelaAtiva('inbox')}
+                        className="text-sm font-medium text-emerald-700 hover:underline"
+                      >
+                        Ver tudo
                       </button>
                     </div>
 
                     {ultimas.length === 0 ? (
-                      <p className="text-sm text-slate-500 mt-2">Você ainda não enviou mensagens.</p>
+                      <p className="mt-4 text-sm text-slate-500">
+                        Você ainda não enviou mensagens.
+                      </p>
                     ) : (
-                      <ul className="mt-3 divide-y divide-slate-100 max-h-64 overflow-auto pr-1">
+                      <ul className="mt-4 space-y-3">
                         {ultimas.map((m) => {
                           const status = m?.respostaRH ? 'respondida' : m?.lida ? 'lida' : 'enviada';
+
                           const statusCls =
                             status === 'respondida'
                               ? 'bg-emerald-100 text-emerald-700'
                               : status === 'lida'
                               ? 'bg-slate-100 text-slate-700'
                               : 'bg-amber-100 text-amber-700';
+
                           return (
-                            <li key={m.id} className="py-2">
-                              <div className="flex items-center justify-between gap-3">
+                            <li key={m.id} className="rounded-2xl border border-slate-100 p-3">
+                              <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
-                                  <div className="text-sm text-slate-800 truncate">
+                                  <p className="truncate text-sm font-medium text-slate-800">
                                     {(m?.conteudo || '').toString().slice(0, 80) || '(sem texto)'}
-                                  </div>
-                                  <div className="text-xs text-slate-500">{fmtDateTime(m?.createdAt)}</div>
+                                  </p>
+                                  <p className="mt-1 text-xs text-slate-500">
+                                    {fmtDateTime(m?.createdAt)}
+                                  </p>
                                 </div>
-                                <span className={`text-xs rounded-full px-2 py-0.5 shrink-0 ${statusCls}`}>
+
+                                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusCls}`}>
                                   {status}
                                 </span>
                               </div>
@@ -512,50 +548,51 @@ export default function ColaboradorDashboard() {
                     )}
                   </div>
 
-                  {/* SLA / Privacidade */}
-                  <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                    <h3 className="font-medium text-slate-900">Como tratamos suas mensagens</h3>
-                    <ul className="text-sm text-slate-600 mt-2 space-y-1">
-                      <li>
-                        Tempo médio de resposta: <strong>até 2 dias úteis</strong>.
-                      </li>
+                  <div className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5 shadow-sm">
+                    <h3 className="font-semibold text-emerald-950">
+                      Como tratamos suas mensagens
+                    </h3>
+
+                    <ul className="mt-3 space-y-2 text-sm text-emerald-900/80">
+                      <li>Tempo médio de resposta: <strong>até 2 dias úteis</strong>.</li>
                       <li>Se marcar “anônimo”, o RH não verá seu nome.</li>
                       <li>Somente o time de RH tem acesso às mensagens.</li>
                     </ul>
                   </div>
 
-                  {/* Recursos úteis (abre em Modal) */}
-                  <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                    <h3 className="font-medium text-slate-900 mb-2">Recursos úteis</h3>
-                    <div className="grid grid-cols-1 gap-2 text-sm">
-                      <button className="text-emerald-700 hover:underline text-left" onClick={() => openResource('policy')}>
+                  <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h3 className="font-semibold text-slate-900">
+                      Recursos úteis
+                    </h3>
+
+                    <div className="mt-4 grid gap-2">
+                      <button className="rounded-xl bg-slate-50 px-3 py-2 text-left text-sm text-emerald-700 transition hover:bg-emerald-50" onClick={() => openResource('policy')}>
                         Política de Conduta
                       </button>
-                      <button className="text-emerald-700 hover:underline text-left" onClick={() => openResource('faq')}>
+                      <button className="rounded-xl bg-slate-50 px-3 py-2 text-left text-sm text-emerald-700 transition hover:bg-emerald-50" onClick={() => openResource('faq')}>
                         FAQ
                       </button>
-                      <button
-                        className="text-emerald-700 hover:underline text-left"
-                        onClick={() => openResource('emergency')}
-                      >
+                      <button className="rounded-xl bg-slate-50 px-3 py-2 text-left text-sm text-emerald-700 transition hover:bg-emerald-50" onClick={() => openResource('emergency')}>
                         Canal de Emergência
                       </button>
-                      <button
-                        className="text-emerald-700 hover:underline text-left"
-                        onClick={() => openResource('contacts')}
-                      >
+                      <button className="rounded-xl bg-slate-50 px-3 py-2 text-left text-sm text-emerald-700 transition hover:bg-emerald-50" onClick={() => openResource('contacts')}>
                         Contatos do RH
                       </button>
                     </div>
                   </div>
-                </div>
+                </aside>
               </section>
-            )}
+            </>
+          )}
 
-            {telaAtiva === 'inbox' && <MensagensEnviadas />}
-          </div>
-        </main>
-      </div>
+          {telaAtiva === 'inbox' && (
+            <div className="mx-auto">
+              <MensagensEnviadas />
+            </div>
+          )}
+        </div>
+      </main>
     </div>
-  );
+  </div>
+);
 }

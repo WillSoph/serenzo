@@ -11,7 +11,7 @@ export const Header = ({ mensagensNaoVistas }: HeaderProps) => {
   const { user } = useAuth();
 
   return (
-    <header className="bg-white shadow-sm flex justify-between items-center px-6 h-16 ml-64 fixed top-0 right-0 left-0">
+    <header className="bg-white shadow-sm flex justify-between items-center px-6 h-16 ml-72 fixed top-0 right-0 left-0">
       <h1 className="text-lg font-semibold">Painel do RH</h1>
       <div className="flex items-center gap-6">
         <div className="relative">

@@ -5,7 +5,7 @@ import { Footer } from "../components/Footer/Footer";
 import { ArrowBigLeft } from "lucide-react";
 
 const base = process.env.NEXT_PUBLIC_BASE_URL || "";
-const title = "Política de Cookies | Serenzo";
+const title = "Política de Cookies | Previsiva";
 const description =
   "Entenda quais cookies utilizamos, para que servem e como gerenciar suas preferências no navegador.";
 
@@ -30,7 +30,7 @@ export default function PoliticaCookiesPage() {
     url: `${base}/politica-de-cookies`,
     publisher: {
       "@type": "Organization",
-      name: "Serenzo",
+      name: "Previsiva",
       url: base,
       logo: { "@type": "ImageObject", url: `${base}/favicon.png` },
     },
@@ -58,7 +58,7 @@ export default function PoliticaCookiesPage() {
         <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Política de Cookies</h1>
         <p className="mt-3 text-slate-700">
           Cookies são pequenos arquivos armazenados no seu dispositivo para lembrar preferências e melhorar sua experiência.
-          Esta política explica como usamos cookies na Serenzo.
+          Esta política explica como usamos cookies na Previsiva.
         </p>
 
         <section className="mt-8 space-y-6">

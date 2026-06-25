@@ -16,12 +16,12 @@ const OG_IMAGE = "/og.png"; // gere uma imagem 1200x630
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Serenzo — Plataforma de bem-estar corporativo com IA",
-    template: "%s • Serenzo",
+    default: "Previsiva — Plataforma de bem-estar corporativo com IA",
+    template: "%s • Previsiva",
   },
   description:
-    "Serenzo é uma plataforma de escuta ativa com IA para bem-estar corporativo. Mensagens anônimas, priorização de riscos e dashboard por setor.",
-  applicationName: "Serenzo",
+    "Previsiva é uma plataforma de escuta ativa com IA para bem-estar corporativo. Mensagens anônimas, priorização de riscos e dashboard por setor.",
+  applicationName: "Previsiva",
   alternates: { canonical: "/" },
   category: "Business",
   keywords: [
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     "RH",
     "dashboard de RH",
     "clima organizacional",
-    "Serenzo",
+    "Previsiva",
   ],
   robots: {
     index: true,
@@ -60,20 +60,20 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: SITE_URL,
-    siteName: "Serenzo",
-    title: "Serenzo — Bem-estar corporativo com IA",
+    siteName: "Previsiva",
+    title: "Previsiva — Bem-estar corporativo com IA",
     description:
       "Escuta ativa, IA que prioriza sinais de risco e painel para RH (dados agregados, LGPD).",
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Serenzo — plataforma de bem-estar corporativo" }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: "Previsiva — plataforma de bem-estar corporativo" }],
     locale: "pt_BR",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Serenzo — Bem-estar corporativo com IA",
+    title: "Previsiva — Bem-estar corporativo com IA",
     description:
       "Escuta ativa, IA que prioriza riscos e insights por setor (dados agregados, LGPD).",
     images: [OG_IMAGE],
-    // creator: "@serenzo_app",
+    // creator: "@previsiva_app",
   },
 };
 
@@ -84,14 +84,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const orgLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Serenzo",
+    name: "Previsiva",
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
   };
   const appLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: "Serenzo",
+    name: "Previsiva",
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     offers: { "@type": "Offer", price: "0", priceCurrency: "BRL" }, // ajuste se tiver planos

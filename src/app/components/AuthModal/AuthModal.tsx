@@ -306,7 +306,7 @@ export function AuthModal({ onClose }: { onClose: () => void }) {
                 <Input placeholder="Código promocional (opcional)" value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.trim())} fullWidth />
                 <p className="text-xs text-slate-500 -mt-1">
-                  Se você recebeu um código (ex.: SERENZO1M), informe aqui. Também é possível aplicar direto no Checkout.
+                  Se você recebeu um código (ex.: PREVISIVA1M), informe aqui. Também é possível aplicar direto no Checkout.
                 </p>
               </div>
             )}

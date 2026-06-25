@@ -10,10 +10,16 @@ import {
   where,
   updateDoc,
   DocumentData,
+  limit,
+  startAfter,
+  getDocs,
+  QueryDocumentSnapshot,
+  getCountFromServer,
 } from 'firebase/firestore';
 import { db } from '@/services/firebase';
 import { useAuth } from '@/context/useAuth';
 import { useUserData } from '@/hooks/useUserData';
+import { MensagensColaboradoresTable } from './MensagensColaboradoresTable';
 
 export function CaixaDeEntrada() {
   const { user } = useAuth();
@@ -25,57 +31,89 @@ export function CaixaDeEntrada() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string>('');
 
-  // Monta query só quando tiver empresaId
-  const q = useMemo(() => {
-    if (!empresaId) return null;
-    try {
-      const qBuilt = query(
-        collectionGroup(db, 'itens'),
-        where('empresaId', '==', empresaId),
-        orderBy('createdAt', 'desc')
-      );
-      return qBuilt;
-    } catch (e: any) {
-      console.error('[RH Inbox] erro ao montar query:', e);
-      setErro(e?.message || 'Erro ao montar consulta');
-      return null;
+  const PAGE_SIZE = 10;
+
+  const [pageDocs, setPageDocs] = useState<QueryDocumentSnapshot<DocumentData>[]>([]);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [totalMensagens, setTotalMensagens] = useState(0);
+
+  const baseQuery = useMemo(() => {
+  if (!empresaId) return null;
+
+  return query(
+    collectionGroup(db, 'itens'),
+    where('empresaId', '==', empresaId),
+    orderBy('createdAt', 'desc')
+  );
+}, [empresaId]);
+
+const carregarPagina = async (direction: 'first' | 'next' = 'first') => {
+  if (!baseQuery) return;
+
+  setLoading(true);
+
+  try {
+    const cursor =
+      direction === 'next' && pageDocs.length > 0
+        ? pageDocs[pageDocs.length - 1]
+        : null;
+
+    const pageQuery = cursor
+      ? query(baseQuery, startAfter(cursor), limit(PAGE_SIZE + 1))
+      : query(baseQuery, limit(PAGE_SIZE + 1));
+
+    const snap = await getDocs(pageQuery);
+
+    const docs = snap.docs.slice(0, PAGE_SIZE);
+    const rows = docs.map((d) => ({
+      id: d.id,
+      ref: d.ref,
+      ...d.data(),
+    }));
+
+  
+
+    setMensagens(rows);
+    setPageDocs(docs);
+    setHasNextPage(snap.docs.length > PAGE_SIZE);
+    setErro('');
+
+    if (direction === 'first') {
+      setPageIndex(0);
+    } else {
+      setPageIndex((p) => p + 1);
     }
-  }, [empresaId]);
+  } catch (e: any) {
+    console.error('[RH Inbox] erro ao carregar página:', e);
+    setErro(e?.message || 'Erro ao carregar mensagens');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  const carregarTotal = async () => {
+    if (!baseQuery) return;
+
+    try {
+      const snapshot = await getCountFromServer(baseQuery);
+      setTotalMensagens(snapshot.data().count);
+    } catch (e) {
+      console.error('Erro ao buscar total', e);
+    }
+  };
 
   useEffect(() => {
-    // Logs de depuração
-    console.log('[RH Inbox] user uid:', user?.uid);
-    console.log('[RH Inbox] tipo (should be "rh"):', tipo);
-    console.log('[RH Inbox] empresaId do RH:', empresaId);
-
-    if (!empresaId) {
-      setLoading(false);
-      return;
-    }
-    if (!q) {
+    if (!empresaId || !baseQuery) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const rows = snap.docs.map((d) => ({ id: d.id, ref: d.ref, ...d.data() }));
-        console.log('[RH Inbox] total docs:', rows.length);
-        setMensagens(rows);
-        setErro('');
-        setLoading(false);
-      },
-      (err) => {
-        console.error('[RH Inbox] snapshot error:', err);
-        setErro(err.message || 'Erro ao carregar mensagens');
-        setLoading(false);
-      }
-    );
+    carregarTotal();
+    carregarPagina('first');
+  }, [empresaId, baseQuery]);
 
-    return () => unsub();
-  }, [q, empresaId, tipo, user?.uid]);
+
 
   const responder = async (m: any, texto: string) => {
     try {
@@ -118,66 +156,20 @@ export function CaixaDeEntrada() {
     );
   }
 
+  
+
   return (
-    <div className="space-y-4 max-h-[calc(100vh-100px)] overflow-auto pr-2">
-      {mensagens.map((m) => {
-        // preferir o novo campo; manter compat com itens antigos
-        const orientacao = m.orientacaoRH ?? m.respostaIA;
-        const tipoMostrado = (m.tipo ?? m.tipoDetectado ?? '').toString();
-  
-        return (
-          <article key={m.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm text-slate-500">
-                  {m.nomeUsuario || 'Colaborador'} · {tipoMostrado}
-                </p>
-                <p className="mt-1 text-slate-800 whitespace-pre-wrap">{m.conteudo}</p>
-  
-                {orientacao && (
-                  <div className="mt-3 rounded-lg bg-emerald-50 border border-emerald-100 p-3">
-                    <p className="text-xs font-medium text-emerald-800">Orientação para RH</p>
-                    <p className="text-sm text-emerald-900 mt-1">{orientacao}</p>
-                  </div>
-                )}
-  
-                {m.respostaRH && (
-                  <div className="mt-3 border-t pt-3">
-                    <p className="text-xs font-medium text-slate-600">Sua resposta</p>
-                    <p className="text-sm text-slate-800 mt-1">{m.respostaRH}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-  
-            {!m.respostaRH && (
-              <form
-                className="mt-4 flex w-full gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const input = e.currentTarget.elements.namedItem('resposta') as HTMLInputElement | null;
-                  const texto = input?.value.trim();
-                  if (!texto) return;
-                  responder(m, texto);
-                  if (input) input.value = '';
-                }}
-              >
-                <input
-                  name="resposta"
-                  className="flex-1 border border-slate-300 rounded-lg px-3 py-2"
-                  placeholder="Escreva uma resposta ao colaborador…"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                >
-                  Enviar
-                </button>
-              </form>
-            )}
-          </article>
-        );
-      })}
-    </div>
-  );
+  <div className="space-y-6">
+    <MensagensColaboradoresTable
+      mensagens={mensagens}
+      totalMensagens={totalMensagens}
+      onResponder={responder}
+      pageIndex={pageIndex}
+      hasNextPage={hasNextPage}
+      loadingPage={loading}
+      onNextPage={() => carregarPagina('next')}
+      onFirstPage={() => carregarPagina('first')}
+    />
+  </div>
+);
 }

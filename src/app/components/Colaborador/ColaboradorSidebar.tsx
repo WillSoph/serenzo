@@ -2,7 +2,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, Inbox, LogOut, X } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Inbox,
+  LogOut,
+  X,
+  BrainCircuit,
+  HeartHandshake,
+} from 'lucide-react';
 import { useAuth } from '@/context/useAuth';
 import { useUserData } from '@/hooks/useUserData';
 import { db } from '@/services/firebase';
@@ -28,14 +35,21 @@ export const ColaboradorSidebar = ({
 
   const [unread, setUnread] = useState<number>(0);
 
-  // Escuta quantidade de mensagens não lidas do colaborador
   useEffect(() => {
     if (!user?.uid || !empresaId) {
       setUnread(0);
       return;
     }
 
-    const itensRef = collection(db, 'mensagens', empresaId, 'colaboradores', user.uid, 'itens');
+    const itensRef = collection(
+      db,
+      'mensagens',
+      empresaId,
+      'colaboradores',
+      user.uid,
+      'itens'
+    );
+
     const q = query(itensRef, where('lida', '==', false));
 
     const unsub = onSnapshot(
@@ -43,80 +57,142 @@ export const ColaboradorSidebar = ({
       (snap) => setUnread(snap.size),
       () => setUnread(0)
     );
+
     return () => unsub();
   }, [user?.uid, empresaId]);
 
   const handleClick = (tela: 'home' | 'inbox') => {
     setTelaAtiva(tela);
-    setMenuAberto(false); // Fecha o menu no mobile
+    setMenuAberto(false);
   };
+
+  const getItemClass = (active: boolean) =>
+    `group flex w-full items-center rounded-xl px-3 py-3 text-sm font-medium transition-all cursor-pointer ${
+      active
+        ? 'bg-white/15 text-white shadow-sm ring-1 ring-white/10'
+        : 'text-emerald-50/75 hover:bg-white/10 hover:text-white'
+    }`;
+
+  const getIconClass = (active: boolean) =>
+    `flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+      active
+        ? 'bg-emerald-400/20 text-emerald-300'
+        : 'bg-white/5 text-emerald-50/70 group-hover:text-emerald-300'
+    }`;
 
   return (
     <>
-      {/* Overlay escurecido */}
-      {menuAberto && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setMenuAberto(false)}
-        />
-      )}
-
       <aside
-        className={`bg-emerald-950 shadow-lg p-6 space-y-6 fixed md:static top-0 left-0 h-screen z-50 w-64 transition-transform duration-300 ease-in-out transform ${
+        className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col justify-between overflow-hidden bg-gradient-to-b from-emerald-950 via-emerald-950 to-teal-950 px-4 py-5 text-white shadow-2xl transition-transform duration-300 ease-in-out md:fixed md:translate-x-0 ${
           menuAberto ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0`}
+        }`}
+        aria-label="Navegação do colaborador"
       >
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-emerald-100">Serenzo</h2>
-          <button className="md:hidden cursor-pointer" onClick={() => setMenuAberto(false)}>
-            <X className="w-5 h-5 text-emerald-200" />
-          </button>
+        <div>
+          <div className="mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-300/25">
+                <BrainCircuit size={26} />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-bold tracking-wide text-white">
+                  PREVISIVA
+                </h2>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
+                  Cuidar antes
+                </p>
+              </div>
+            </div>
+
+            <button
+              className="rounded-lg p-2 text-emerald-50/70 transition hover:bg-white/10 hover:text-white md:hidden"
+              onClick={() => setMenuAberto(false)}
+              aria-label="Fechar menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <nav className="space-y-7">
+            <div>
+              <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-emerald-100/45">
+                Bem-estar
+              </p>
+
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => handleClick('home')}
+                  className={getItemClass(telaAtiva === 'home')}
+                >
+                  <span className={getIconClass(telaAtiva === 'home')}>
+                    <LayoutDashboard size={18} />
+                  </span>
+
+                  <span className="ml-3">Início</span>
+                </button>
+
+                <button
+                  onClick={() => handleClick('inbox')}
+                  className={`${getItemClass(telaAtiva === 'inbox')} justify-between`}
+                >
+                  <span className="flex items-center">
+                    <span className={getIconClass(telaAtiva === 'inbox')}>
+                      <Inbox size={18} />
+                    </span>
+
+                    <span className="ml-3">Caixa de Entrada</span>
+                  </span>
+
+                  {unread > 0 && (
+                    <span
+                      className="rounded-full bg-emerald-300 px-2 py-0.5 text-xs font-bold text-emerald-950"
+                      aria-label={`${unread} mensagens não lidas`}
+                    >
+                      {unread}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </nav>
         </div>
 
-        <nav className="space-y-3 font-medium">
-          <button
-            onClick={() => handleClick('home')}
-            className={`flex items-center gap-3 w-full p-2 rounded cursor-pointer transition ${
-              telaAtiva === 'home'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'text-emerald-50 hover:text-emerald-300'
-            }`}
-          >
-            <LayoutDashboard size={18} />
-            Início
-          </button>
-
-          <button
-            onClick={() => handleClick('inbox')}
-            className={`flex items-center justify-between w-full p-2 rounded cursor-pointer transition ${
-              telaAtiva === 'inbox'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'text-emerald-50 hover:text-emerald-300'
-            }`}
-          >
-            <span className="flex items-center gap-3">
-              <Inbox size={18} />
-              Caixa de Entrada
-            </span>
-            <span className="bg-emerald-600 text-white text-xs rounded-full px-2 py-0.5 min-w-[1.25rem] text-center">
-              {unread}
-            </span>
-          </button>
-        </nav>
-
-        <div className="pt-6 border-t border-emerald-800">
+        <div className="space-y-3">
           <button
             onClick={() => {
               logout();
               setMenuAberto(false);
             }}
-            className="flex items-center gap-3 text-emerald-300 hover:text-emerald-100 cursor-pointer transition"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-emerald-50/75 transition hover:bg-white/10 hover:text-white"
           >
             <LogOut size={18} />
             Sair
           </button>
+
+          <div className="rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
+            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-emerald-300 text-emerald-950">
+              <HeartHandshake size={18} />
+            </div>
+
+            <p className="text-sm font-semibold text-white">
+              Área do colaborador
+            </p>
+
+            <p className="mt-1 text-xs leading-relaxed text-emerald-50/60">
+              Compartilhe mensagens com segurança e acompanhe respostas do RH.
+            </p>
+          </div>
         </div>
       </aside>
+
+      {menuAberto && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+          onClick={() => setMenuAberto(false)}
+          aria-hidden
+        />
+      )}
     </>
   );
 };

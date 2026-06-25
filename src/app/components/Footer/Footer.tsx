@@ -1,85 +1,207 @@
-// components/site/Footer.tsx
 "use client";
 
 import Link from "next/link";
-import { Instagram, Linkedin, MessageCircle } from "lucide-react";
+import {
+  Instagram,
+  Linkedin,
+  MessageCircle,
+  Heart,
+} from "lucide-react";
 
 export function Footer() {
   return (
-    <footer id="footer" className="bg-gray-900 text-gray-300">
-      <div className="max-w-6xl mx-auto px-4 py-10">
+    <footer
+      id="footer"
+      className="relative overflow-hidden bg-slate-950 text-slate-300"
+    >
+      {/* efeitos de fundo */}
+      <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl" />
+      <div className="absolute right-0 bottom-0 h-72 w-72 rounded-full bg-pink-400/10 blur-3xl" />
+
+      <div className="relative max-w-7xl mx-auto px-6 py-20">
+
+        {/* Logo */}
         <div className="text-center">
-          <div className="font-extrabold tracking-tight text-white">SERENZO</div>
-          <p className="mt-2 text-sm">Cuidado emocional com tecnologia e humanidade.</p>
+
+          <img
+            src="/logo-previsiva-white.png"
+            alt="Previsiva"
+            className="mx-auto h-14 w-auto"
+          />
+
+          <p className="mt-5 text-slate-400 max-w-xl mx-auto leading-relaxed">
+            Tecnologia, inteligência artificial e empatia para criar
+            ambientes de trabalho mais saudáveis.
+          </p>
+
         </div>
 
-        {/* Navegação principal */}
+        {/* Navegação */}
         <nav
-          aria-label="Links do site"
-          className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-sm justify-items-center"
+          className="
+            mt-14
+            flex
+            flex-wrap
+            justify-center
+            gap-x-12
+            gap-y-5
+            text-sm
+            font-medium
+          "
         >
-          <Link href="/como-funciona" className="hover:text-white">Como funciona</Link>
-          <Link href="/para-empresas" className="hover:text-white">Para empresas</Link>
-          <Link href="/faq" className="hover:text-white">FAQ</Link>
-          <Link href="/blog" className="hover:text-white">Blog</Link>
-          <Link href="/sobre" className="hover:text-white">Sobre</Link>
-          <Link href="/contato" className="hover:text-white">Contato</Link>
+          <Link href="#hero" className="hover:text-white transition">
+            Início
+          </Link>
+
+          <Link href="#about" className="hover:text-white transition">
+            Quem somos
+          </Link>
+
+          <Link href="#benefits" className="hover:text-white transition">
+            Vantagens
+          </Link>
+
+          <Link href="#testimonials" className="hover:text-white transition">
+            Depoimentos
+          </Link>
+
+          <Link href="/faq" className="hover:text-white transition">
+            FAQ
+          </Link>
+
+          <Link href="/blog" className="hover:text-white transition">
+            Blog
+          </Link>
+
+          <Link href="/contato" className="hover:text-white transition">
+            Contato
+          </Link>
         </nav>
 
-        <div className="mt-8 border-t border-white/10" />
+        {/* divisor */}
+        <div className="mt-14 border-t border-slate-800" />
 
-        {/* Legal + Social */}
-        <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          {/* Links legais */}
-          <nav aria-label="Links legais" className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
-            <Link href="/politica-de-privacidade" className="hover:text-white">Política de Privacidade</Link>
-            <span className="text-gray-500">•</span>
-            <Link href="/termos-de-uso" className="hover:text-white">Termos de Uso</Link>
-            <span className="text-gray-500">•</span>
-            <Link href="/politica-de-cookies" className="hover:text-white">Política de Cookies</Link>
-          </nav>
+        {/* Bottom */}
+        <div className="mt-10 flex flex-col lg:flex-row items-center justify-between gap-8">
 
-          {/* Redes sociais */}
+          {/* legais */}
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-400">
+
+            <Link
+              href="/politica-de-privacidade"
+              className="hover:text-white transition"
+            >
+              Política de Privacidade
+            </Link>
+
+            <Link
+              href="/termos-de-uso"
+              className="hover:text-white transition"
+            >
+              Termos de Uso
+            </Link>
+
+            <Link
+              href="/politica-de-cookies"
+              className="hover:text-white transition"
+            >
+              Cookies
+            </Link>
+
+          </div>
+
+          {/* Redes */}
           <div className="flex items-center gap-4">
+
             <a
               href="https://www.instagram.com/serenzo.app"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Instagram da Serenzo"
-              className="inline-flex items-center gap-2 hover:text-white"
-              title="Instagram"
+              className="
+                h-11
+                w-11
+                rounded-xl
+                bg-slate-900
+                border
+                border-slate-800
+                flex
+                items-center
+                justify-center
+                hover:border-pink-400
+                hover:text-pink-400
+                transition
+              "
             >
-              <Instagram className="h-4 w-4" />
-              <span className="text-sm">Instagram</span>
+              <Instagram size={18} />
             </a>
+
             <a
               href="https://www.linkedin.com/company/serenzo"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="LinkedIn da Serenzo"
-              className="inline-flex items-center gap-2 hover:text-white"
-              title="LinkedIn"
+              className="
+                h-11
+                w-11
+                rounded-xl
+                bg-slate-900
+                border
+                border-slate-800
+                flex
+                items-center
+                justify-center
+                hover:border-sky-400
+                hover:text-sky-400
+                transition
+              "
             >
-              <Linkedin className="h-4 w-4" />
-              <span className="text-sm">LinkedIn</span>
+              <Linkedin size={18} />
             </a>
+
             <a
               href="https://wa.me/5511939298907"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="WhatsApp da Serenzo"
-              className="inline-flex items-center gap-2 hover:text-white"
-              title="WhatsApp"
+              className="
+                h-11
+                w-11
+                rounded-xl
+                bg-slate-900
+                border
+                border-slate-800
+                flex
+                items-center
+                justify-center
+                hover:border-emerald-400
+                hover:text-emerald-400
+                transition
+              "
             >
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-sm">WhatsApp</span>
+              <MessageCircle size={18} />
             </a>
+
           </div>
+
         </div>
 
-        <p className="mt-6 text-xs text-gray-400 text-center">
-          &copy; {new Date().getFullYear()} Serenzo. Todos os direitos reservados.
-        </p>
+        {/* copyright */}
+        <div className="mt-14 text-center">
+
+          <div className="flex justify-center items-center gap-2 text-slate-400">
+
+            <span>
+              © {new Date().getFullYear()} Previsiva. Todos os direitos
+              reservados.
+            </span>
+
+            <Heart
+              className="text-pink-400 fill-pink-400"
+              size={14}
+            />
+
+          </div>
+
+        </div>
+
       </div>
     </footer>
   );

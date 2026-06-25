@@ -4,8 +4,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Footer } from "../components/Footer/Footer";
 
-const title = "FAQ | Serenzo";
-const description = "Perguntas frequentes sobre anonimato, privacidade, prazos de resposta e integrações da Serenzo.";
+const title = "FAQ | Previsiva";
+const description = "Perguntas frequentes sobre anonimato, privacidade, prazos de resposta e integrações da Previsiva.";
 
 export const metadata: Metadata = {
   title,

@@ -94,7 +94,7 @@ export default function CookieConsent() {
       >
         <div className="space-y-3 text-slate-700">
           <p>
-            Esta Política explica como a <strong>Serenzo</strong> utiliza cookies
+            Esta Política explica como a <strong>Previsiva</strong> utiliza cookies
             e tecnologias semelhantes para operar o site, lembrar suas
             preferências, medir audiência e aprimorar sua experiência.
           </p>

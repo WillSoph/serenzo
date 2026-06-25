@@ -4,9 +4,9 @@ import Link from "next/link";
 import { Footer } from "../components/Footer/Footer";
 import { ArrowBigLeft } from "lucide-react";
 
-const title = "Como funciona | Serenzo";
+const title = "Como funciona | Previsiva";
 const description =
-  "Veja como a Serenzo coleta feedback dos colaboradores, usa IA para priorizar casos e oferece um painel para RH agir com rapidez e empatia.";
+  "Veja como a Previsiva coleta feedback dos colaboradores, usa IA para priorizar casos e oferece um painel para RH agir com rapidez e empatia.";
 
 export const metadata: Metadata = {
   title,
@@ -24,12 +24,12 @@ export default function ComoFuncionaPage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: "Como funciona a Serenzo",
+    headline: "Como funciona a Previsiva",
     description,
     mainEntityOfPage: `${process.env.NEXT_PUBLIC_BASE_URL}/como-funciona`,
     publisher: {
       "@type": "Organization",
-      name: "Serenzo",
+      name: "Previsiva",
       url: process.env.NEXT_PUBLIC_BASE_URL,
       logo: {
         "@type": "ImageObject",
@@ -64,9 +64,9 @@ export default function ComoFuncionaPage() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
 
-        <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Como a Serenzo funciona</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-emerald-900">Como a Previsiva funciona</h1>
         <p className="mt-3 text-slate-700">
-            A Serenzo conecta colaboradores e RH com segurança, inteligência e rapidez. Entenda o passo a passo:
+            A Previsiva conecta colaboradores e RH com segurança, inteligência e rapidez. Entenda o passo a passo:
         </p>
 
         <ol className="mt-8 space-y-6 list-decimal pl-5">

@@ -1,6 +1,16 @@
 'use client';
 
-import { LogOut, LayoutDashboard, Inbox, Send, UserPlus } from 'lucide-react';
+import {
+  LogOut,
+  LayoutDashboard,
+  Inbox,
+  Send,
+  UserPlus,
+  Settings,
+  Bell,
+  ChevronDown,
+  BrainCircuit,
+} from 'lucide-react';
 import { useAuth } from '@/context/useAuth';
 
 interface SidebarProps {
@@ -9,80 +19,165 @@ interface SidebarProps {
   mensagensNaoVistas: { inbox: number; enviadas: number };
 }
 
-export const Sidebar = ({ telaAtiva, setTelaAtiva, mensagensNaoVistas }: SidebarProps) => {
+export const Sidebar = ({
+  telaAtiva,
+  setTelaAtiva,
+  mensagensNaoVistas,
+}: SidebarProps) => {
   const { logout } = useAuth();
 
+  const menuAtendimento = [
+    {
+      id: 'home',
+      label: 'Visão geral',
+      icon: LayoutDashboard,
+    },
+    {
+      id: 'inbox',
+      label: 'Cx. de Entrada',
+      icon: Inbox,
+      badge: mensagensNaoVistas.inbox,
+    },
+    {
+      id: 'enviadas',
+      label: 'Mensagens',
+      icon: Send,
+      badge: mensagensNaoVistas.enviadas,
+    },
+  ];
+
+  const menuGestao = [
+    {
+      id: 'adicionar',
+      label: 'Usuários',
+      icon: UserPlus,
+    },
+    {
+      id: 'alertas',
+      label: 'Alertas',
+      icon: Bell,
+    },
+    {
+      id: 'configuracoes',
+      label: 'Configurações',
+      icon: Settings,
+    },
+  ];
+
+  const renderMenuItem = (item: any) => {
+    const Icon = item.icon;
+    const isActive = telaAtiva === item.id;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => setTelaAtiva(item.id)}
+        className={`
+          group flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm transition-all
+          ${
+            isActive
+              ? 'bg-white/15 text-white shadow-sm'
+              : 'text-emerald-50/80 hover:bg-white/10 hover:text-white'
+          }
+        `}
+      >
+        <span className="flex items-center gap-3">
+          <span
+            className={`
+              flex h-8 w-8 items-center justify-center rounded-lg transition-all
+              ${
+                isActive
+                  ? 'bg-emerald-400/20 text-emerald-300'
+                  : 'bg-white/5 text-emerald-50/70 group-hover:text-emerald-300'
+              }
+            `}
+          >
+            <Icon size={18} />
+          </span>
+
+          {item.label}
+        </span>
+
+        {item.badge > 0 && (
+          <span
+            className={`
+              min-w-6 rounded-full px-2 py-0.5 text-xs font-semibold
+              ${
+                isActive
+                  ? 'bg-emerald-300 text-emerald-950'
+                  : 'bg-emerald-500 text-white'
+              }
+            `}
+          >
+            {item.badge}
+          </span>
+        )}
+      </button>
+    );
+  };
+
   return (
-    <aside className="bg-white w-64 h-screen fixed shadow-md flex flex-col justify-between">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-72 flex-col justify-between overflow-hidden bg-gradient-to-b from-emerald-950 via-emerald-950 to-teal-950 px-4 py-5 text-white shadow-2xl">
       <div>
-        <div className="flex items-center justify-center py-6 text-xl font-bold text-blue-600 border-b">
-          <span className="text-2xl">🧠</span> RH Dashboard
+        <div className="mb-8 flex items-center gap-3 px-2">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-400/15 text-emerald-300 ring-1 ring-emerald-300/25">
+            <BrainCircuit size={26} />
+          </div>
+
+          <div>
+            <h1 className="text-xl font-bold tracking-wide">PREVISIVA</h1>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-emerald-300">
+              Cuidar antes
+            </p>
+          </div>
         </div>
 
-        <nav className="mt-6 flex flex-col space-y-2 px-4 text-gray-700 font-medium">
-          <button
-            onClick={() => setTelaAtiva("home")}
-            className={`flex items-center gap-3 p-2 rounded hover:bg-blue-100 ${
-              telaAtiva === "home" ? "bg-blue-100 text-blue-600" : ""
-            }`}
-          >
-            <LayoutDashboard size={18} />
-            Home
-          </button>
+        <nav className="space-y-7">
+          <div>
+            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-emerald-100/45">
+              Painel
+            </p>
 
-          <button
-            onClick={() => setTelaAtiva("inbox")}
-            className={`flex items-center justify-between p-2 rounded hover:bg-blue-100 ${
-              telaAtiva === "inbox" ? "bg-blue-100 text-blue-600" : ""
-            }`}
-          >
-            <span className="flex items-center gap-3">
-              <Inbox size={18} />
-              Caixa de Entrada
-            </span>
-            {mensagensNaoVistas.inbox > 0 && (
-              <span className="bg-blue-600 text-white text-xs rounded-full px-2">
-                {mensagensNaoVistas.inbox}
-              </span>
-            )}
-          </button>
+            <div className="space-y-1.5">
+              {menuAtendimento.map(renderMenuItem)}
+            </div>
+          </div>
 
-          <button
-            onClick={() => setTelaAtiva("enviadas")}
-            className={`flex items-center justify-between p-2 rounded hover:bg-blue-100 ${
-              telaAtiva === "enviadas" ? "bg-blue-100 text-blue-600" : ""
-            }`}
-          >
-            <span className="flex items-center gap-3">
-              <Send size={18} />
-              Mensagens Enviadas
-            </span>
-            {mensagensNaoVistas.enviadas > 0 && (
-              <span className="bg-blue-600 text-white text-xs rounded-full px-2">
-                {mensagensNaoVistas.enviadas}
-              </span>
-            )}
-          </button>
+          <div>
+            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-emerald-100/45">
+              Gestão
+            </p>
 
-          <button
-            onClick={() => setTelaAtiva("adicionar")}
-            className={`flex items-center gap-3 p-2 rounded hover:bg-blue-100 ${
-              telaAtiva === "adicionar" ? "bg-blue-100 text-blue-600" : ""
-            }`}
-          >
-            <UserPlus size={18} />
-            Adicionar Usuário
-          </button>
+            <div className="space-y-1.5">
+              {menuGestao.map(renderMenuItem)}
+            </div>
+          </div>
         </nav>
       </div>
 
-      <div className="p-4 border-t">
+      <div className="space-y-3">
         <button
           onClick={logout}
-          className="w-full text-left flex items-center gap-3 text-emerald-500 hover:underline cursor-pointer"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-emerald-50/80 transition hover:bg-white/10 hover:text-white"
         >
-          <LogOut size={18} /> Sair
+          <LogOut size={18} />
+          Sair
         </button>
+
+        <div className="flex items-center justify-between rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-300 text-sm font-bold text-emerald-950">
+              W
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold">Willzao Silva</p>
+              <p className="text-xs text-emerald-50/60">Administrador</p>
+            </div>
+          </div>
+
+          <ChevronDown size={16} className="text-emerald-50/60" />
+        </div>
       </div>
     </aside>
   );

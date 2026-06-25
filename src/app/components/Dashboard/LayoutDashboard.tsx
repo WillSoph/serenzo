@@ -20,7 +20,6 @@ export const LayoutDashboard = ({
   const [menuAberto, setMenuAberto] = useState(false);
 
   useEffect(() => {
-    console.log("ABRIU")
     if (menuAberto) {
       document.body.classList.add('overflow-hidden');
     } else {
@@ -29,7 +28,7 @@ export const LayoutDashboard = ({
   }, [menuAberto]);
 
   return (
-    <div className="flex">
+    <div className="h-screen overflow-hidden bg-slate-50">
       <RhSidebar
         telaAtiva={telaAtiva}
         setTelaAtiva={setTelaAtiva}
@@ -37,12 +36,16 @@ export const LayoutDashboard = ({
         menuAberto={menuAberto}
         setMenuAberto={setMenuAberto}
       />
-      <div className="flex-1 md:ml-64">
-      <RhHeader
-        mensagensNaoVistas={mensagensNaoVistas}
-        onMenuClick={() => setMenuAberto(true)}
-      />
-        <main className="pt-20 px-6">{children}</main>
+
+      <div className="h-screen md:ml-72">
+        <RhHeader
+          mensagensNaoVistas={mensagensNaoVistas}
+          onMenuClick={() => setMenuAberto(true)}
+        />
+
+        <main className="h-[calc(100vh-5rem)] overflow-y-auto px-6 pt-24 pb-8">
+          {children}
+        </main>
       </div>
     </div>
   );
