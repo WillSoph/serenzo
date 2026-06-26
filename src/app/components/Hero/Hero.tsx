@@ -79,14 +79,14 @@ export function Hero() {
             empresas que valorizam o bem-estar e a produtividade dos times.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-row">
             <Button
               type="button"
               onClick={() => {
                 setIdx(0);
                 setOpen(true);
               }}
-              className="rounded-xl bg-emerald-600 px-6 py-3 text-white hover:bg-emerald-700"
+              className="h-12 rounded-xl bg-emerald-600 px-3 text-sm text-white hover:bg-emerald-700 sm:px-6"
             >
               Ver como funciona
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -98,29 +98,29 @@ export function Hero() {
                 setIdx(0);
                 setOpen(true);
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-200 hover:bg-pink-50 hover:text-pink-600"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-200 hover:bg-pink-50 hover:text-pink-600 sm:px-6"
             >
               <PlayCircle className="h-5 w-5 text-pink-500" />
               Assistir vídeo
             </button>
           </div>
 
-          <div className="mt-9 flex flex-wrap gap-5 text-sm text-slate-600">
-            <span className="inline-flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+          <div className="mt-8 grid grid-cols-3 gap-2 text-center text-[11px] font-medium text-slate-600 sm:flex sm:flex-wrap sm:gap-5 sm:text-sm sm:text-left">
+            <span className="flex flex-col items-center gap-2 sm:flex-row">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 sm:h-9 sm:w-9">
                 <ShieldCheck className="h-4 w-4" />
               </span>
               Seguro e anônimo
             </span>
 
-            <span className="inline-flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+            <span className="flex flex-col items-center gap-2 sm:flex-row">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 sm:h-9 sm:w-9">
                 <Lock className="h-4 w-4" />
               </span>
               Confiável
             </span>
 
-            <span className="inline-flex items-center gap-2">
+            <span className="flex flex-col items-center gap-2 sm:flex-row">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-pink-100 text-pink-500">
                 <Heart className="h-4 w-4" />
               </span>
@@ -129,7 +129,7 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative mt-2 md:mt-0">
 
           <div className="absolute -right-4 top-20 hidden rounded-2xl bg-white p-4 shadow-xl ring-1 ring-slate-100 md:block">
             <div className="h-10 w-16 rounded-lg bg-emerald-100" />
@@ -142,12 +142,12 @@ export function Hero() {
           <div className="relative">
 
           {/* Card */}
-          <div className="relative overflow-hidden rounded-[2rem] border border-emerald-100 bg-white/80 p-5 shadow-2xl backdrop-blur z-10">
-            <div className="relative overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-emerald-50 via-white to-pink-50 p-8">              
+          <div className="relative z-10 mx-auto max-w-[340px] overflow-hidden rounded-[1.5rem] border border-emerald-100 bg-white/80 p-3 shadow-xl backdrop-blur md:max-w-none md:rounded-[2rem] md:p-5 md:shadow-2xl">
+            <div className="relative overflow-hidden rounded-[1.2rem] bg-gradient-to-br from-emerald-50 via-white to-pink-50 p-4 md:rounded-[1.5rem] md:p-8">             
               <img
                 src="/mascote-previ.png"
                 alt="Mascote Previ"
-                className="relative mx-auto max-h-[430px] w-full object-contain z-20"
+                className="relative z-20 mx-auto max-h-[250px] w-full object-contain md:max-h-[430px]"
               />
             </div>
           </div>
@@ -172,8 +172,8 @@ export function Hero() {
 
           </div>
 
-          <div className="absolute -right-7 top-1/2 text-3xl text-pink-400">♥</div>
-          <div className="absolute -left-5 bottom-20 text-2xl text-pink-400">♥</div>
+          <div className="absolute -right-7 top-1/2 hidden text-3xl text-pink-400 md:block">♥</div>
+          <div className="absolute -left-5 bottom-20 hidden text-2xl text-pink-400 md:block">♥</div>
         </div>
       </div>
 
