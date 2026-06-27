@@ -14,11 +14,14 @@ function getYoutubeEmbedUrl(url: string) {
   if (!url) return "";
 
   const videoId =
-    url.match(/youtu\.be\/([^?&]+)/)?.[1] ||
-    url.match(/[?&]v=([^?&]+)/)?.[1] ||
-    url.match(/youtube\.com\/embed\/([^?&]+)/)?.[1];
+    url.match(/youtu\.be\/([^?&/]+)/)?.[1] ||
+    url.match(/[?&]v=([^?&/]+)/)?.[1] ||
+    url.match(/youtube\.com\/embed\/([^?&/]+)/)?.[1] ||
+    url.match(/youtube\.com\/shorts\/([^?&/]+)/)?.[1];
 
-  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : url;
+  return videoId
+    ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
+    : url;
 }
 
 export function VideoModal({
@@ -40,7 +43,7 @@ export function VideoModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+        className="w-full max-w-[430px] overflow-hidden rounded-3xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
@@ -60,22 +63,22 @@ export function VideoModal({
           </button>
         </header>
 
-        <div className="bg-slate-950 p-2 md:p-4">
-          <div className="aspect-video w-full overflow-hidden rounded-2xl bg-black">
+        <div className="bg-slate-950 p-3 md:p-5">
             {embedUrl ? (
-              <iframe
-                src={embedUrl}
-                title={title}
-                className="h-full w-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
+                <div className="mx-auto aspect-[9/16] max-h-[72vh] w-full max-w-[360px] overflow-hidden rounded-2xl bg-black shadow-2xl">
+                <iframe
+                    src={embedUrl}
+                    title={title}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                />
+                </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-white/70">
+                <div className="flex aspect-video w-full items-center justify-center rounded-2xl bg-black text-sm text-white/70">
                 Adicione a URL do vídeo.
-              </div>
+                </div>
             )}
-          </div>
         </div>
       </div>
     </div>
