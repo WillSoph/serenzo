@@ -114,7 +114,7 @@ export function Footer() {
           <div className="flex items-center gap-4">
 
             <a
-              href="https://www.instagram.com/serenzo.app"
+              href="https://www.instagram.com/sistema.previsiva"
               target="_blank"
               rel="noopener noreferrer"
               className="
@@ -136,7 +136,7 @@ export function Footer() {
             </a>
 
             <a
-              href="https://www.linkedin.com/company/serenzo"
+              href="https://www.linkedin.com/company/sistema-previsiva"
               target="_blank"
               rel="noopener noreferrer"
               className="
