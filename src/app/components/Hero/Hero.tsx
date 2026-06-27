@@ -11,10 +11,15 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "../ui/Button";
+import { HowItWorksModal } from "../Modal/HowItWorksModal";
+import { VideoModal } from "../Modal/VideoModal";
 
 export function Hero() {
   const [open, setOpen] = useState(false);
   const [idx, setIdx] = useState(0);
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  const videoUrl = "https://youtube.com/shorts/JwT0wD5NIYM?si=svHq-CwugGm6fjGO";
 
   const slides = [
     { src: "/slides/como-funciona-1.png", alt: "Envio de mensagem pelo colaborador" },
@@ -94,10 +99,7 @@ export function Hero() {
 
             <button
               type="button"
-              onClick={() => {
-                setIdx(0);
-                setOpen(true);
-              }}
+              onClick={() => setVideoOpen(true)}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-200 hover:bg-pink-50 hover:text-pink-600 sm:px-6"
             >
               <PlayCircle className="h-5 w-5 text-pink-500" />
@@ -177,120 +179,18 @@ export function Hero() {
         </div>
       </div>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Como funciona"
-        >
-          <div
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
-
-          <div className="relative w-full max-w-5xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
-            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Como funciona</h3>
-                <p className="text-sm text-slate-500">
-                  Veja como a Previsiva transforma mensagens em cuidado.
-                </p>
-              </div>
-
-              <button
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-                onClick={() => setOpen(false)}
-                aria-label="Fechar"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="relative bg-slate-50">
-              <div className="aspect-[16/9] flex items-center justify-center">
-                <img
-                  key={slides[idx].src}
-                  src={slides[idx].src}
-                  alt={slides[idx].alt}
-                  className="max-h-[62vh] w-full object-contain"
-                />
-              </div>
-
-              <button
-                onClick={prev}
-                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white/90 p-3 shadow transition hover:bg-white"
-                aria-label="Anterior"
-              >
-                ‹
-              </button>
-
-              <button
-                onClick={next}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-white/90 p-3 shadow transition hover:bg-white"
-                aria-label="Próximo"
-              >
-                ›
-              </button>
-
-              <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2">
-                {slides.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setIdx(i)}
-                    className={`h-2.5 rounded-full transition ${
-                      i === idx ? "w-8 bg-emerald-600" : "w-2.5 bg-slate-300 hover:bg-slate-400"
-                    }`}
-                    aria-label={`Ir para slide ${i + 1}`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="px-6 py-5">
-              <div className="grid gap-3 md:grid-cols-4">
-                {steps.map((s, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-2xl border p-4 text-sm ${
-                      i === idx
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-                        : "border-slate-200 bg-white text-slate-600"
-                    }`}
-                  >
-                    <span className="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
-                      {i + 1}
-                    </span>
-                    {s}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 flex items-center justify-between">
-                <span className="text-xs text-slate-500">
-                  Slide {idx + 1} de {slides.length}
-                </span>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={prev}
-                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Anterior
-                  </button>
-
-                  <button
-                    onClick={next}
-                    className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
-                  >
-                    Próximo
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <HowItWorksModal
+        open={open}
+        onClose={() => setOpen(false)}
+        slides={slides}
+        steps={steps}
+      />
+      <VideoModal
+        open={videoOpen}
+        onClose={() => setVideoOpen(false)}
+        videoUrl={videoUrl}
+        title="Conheça a Previsiva"
+      />
     </section>
   );
 }
