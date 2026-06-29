@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     const customer = session.customer as Stripe.Customer;
     const metadata = customer.metadata;
 
-    console.log("📦 Metadados recebidos no process-checkout:", metadata);
+    // console.log("📦 Metadados recebidos no process-checkout:", metadata);
 
     if (!metadata || !metadata.email || !metadata.senha) {
       return NextResponse.json({ error: "Metadados incompletos." }, { status: 400 });

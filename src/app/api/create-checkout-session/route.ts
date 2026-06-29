@@ -15,9 +15,9 @@ function debugLog(label: string, payload: any) {
         typeof v === "string" && v.length > 500 ? v.slice(0, 500) + "…[trunc]" : v
       )
     );
-    console.log(`[checkout][${label}]`, safe);
+    // console.log(`[checkout][${label}]`, safe);
   } catch {
-    console.log(`[checkout][${label}]`, payload);
+    // console.log(`[checkout][${label}]`, payload);
   }
 }
 

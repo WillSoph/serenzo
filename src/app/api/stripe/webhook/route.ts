@@ -135,12 +135,12 @@ export async function POST(req: Request) {
         { merge: true }
       );
 
-      console.log("✔ Conta/empresa assinante atualizada via Webhook.", {
-        empresaId,
-        customerId,
-        subscriptionId,
-        status,
-      });
+      // console.log("✔ Conta/empresa assinante atualizada via Webhook.", {
+      //   empresaId,
+      //   customerId,
+      //   subscriptionId,
+      //   status,
+      // });
     }
 
     // (opcional) trate outros eventos: customer.subscription.updated|deleted, invoice.*, etc.

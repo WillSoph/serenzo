@@ -54,7 +54,7 @@ export function Hero() {
 
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = bodyPrev;
+      // document.body.style.overflow = bodyPrev;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);

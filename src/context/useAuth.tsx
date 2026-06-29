@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("[useAuth] Firebase user →", firebaseUser);
+      // console.log("[useAuth] Firebase user →", firebaseUser);
       setUser(firebaseUser);
   
       if (firebaseUser) {
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const snap = await getDoc(userRef);
           if (snap.exists()) {
             const data = snap.data();
-            console.log("[useAuth] Dados Firestore →", data);
+            // console.log("[useAuth] Dados Firestore →", data);
             setTipo(data.tipo as TipoUsuario);
           } else {
             console.warn("[useAuth] Documento não encontrado no Firestore");

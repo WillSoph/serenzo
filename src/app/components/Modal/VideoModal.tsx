@@ -1,6 +1,7 @@
 // components/site/VideoModal.tsx
 "use client";
 
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { X } from "lucide-react";
 
 interface VideoModalProps {
@@ -30,9 +31,10 @@ export function VideoModal({
   videoUrl,
   title = "Assista ao vídeo",
 }: VideoModalProps) {
-  if (!open) return null;
+  useLockBodyScroll(open);
+  if (!open) return null;  
 
-  const embedUrl = getYoutubeEmbedUrl(videoUrl);
+  const embedUrl = getYoutubeEmbedUrl(videoUrl);  
 
   return (
     <div

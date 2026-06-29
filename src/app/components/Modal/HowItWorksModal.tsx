@@ -1,6 +1,7 @@
 // components/site/HowItWorksModal.tsx
 "use client";
 
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -27,6 +28,8 @@ export function HowItWorksModal({
   const next = () => setIdx((i) => (i + 1) % slides.length);
   const prev = () => setIdx((i) => (i - 1 + slides.length) % slides.length);
 
+  useLockBodyScroll(open);
+
   useEffect(() => {
     if (!open) return;
 
@@ -38,12 +41,9 @@ export function HowItWorksModal({
       if (e.key === "ArrowLeft") prev();
     };
 
-    const oldOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     window.addEventListener("keydown", onKey);
 
     return () => {
-      document.body.style.overflow = oldOverflow;
       window.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);
