@@ -24,6 +24,7 @@ export function Header() {
     "text-sm font-medium text-slate-700 transition hover:text-emerald-700";
 
   return (
+    <>
     <header
       className={`fixed left-0 top-0 z-50 w-full transition-all ${
         scrolled
@@ -129,8 +130,8 @@ export function Header() {
           </nav>
         </div>
       )}
-
-      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
     </header>
+    <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
+    </>
   );
 }
